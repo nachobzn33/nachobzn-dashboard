@@ -1,0 +1,3559 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Nachobzn — Dashboard</title>
+<style>
+  :root{
+    color-scheme: light;
+    --page:#050507;
+    --bg:#0c0c10;
+    --panel:#131318;
+    --panel-2:#1a1a21;
+    --ink:#f3f3f6;
+    --ink-soft:#92929d;
+    --line:rgba(255,255,255,.08);
+    --line-soft:rgba(255,255,255,.05);
+    --accent:#22c55e;
+    --accent-1:#34d399;
+    --accent-2:#0ea968;
+    --accent-soft:rgba(34,197,94,.16);
+    --accent-glow:rgba(34,197,94,.55);
+    --green:#3ddc97;
+    --green-soft:rgba(61,220,151,.14);
+    --amber:#fbbf24;
+    --amber-soft:rgba(251,191,36,.14);
+    --red:#fb7185;
+    --red-soft:rgba(251,113,133,.14);
+    --radius:14px;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;
+    background:var(--page);
+    color:var(--ink);
+  }
+  .app{
+    display:flex;
+    min-height:calc(100vh - 36px);
+    margin:18px;
+    background:var(--bg);
+    border-radius:24px;
+    box-shadow:0 30px 80px -28px rgba(0,0,0,.7), 0 0 0 1px rgba(255,255,255,.04);
+  }
+  .sidebar{
+    width:240px;
+    flex-shrink:0;
+    background:rgba(0,0,0,.18);
+    border-right:1px solid var(--line);
+    border-radius:24px 0 0 24px;
+    padding:18px 14px;
+    display:flex;
+    flex-direction:column;
+    gap:4px;
+  }
+  .brand-row{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    padding:2px 6px 16px;
+  }
+  .brand{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    font-size:16.5px;
+    font-weight:700;
+    color:var(--ink);
+  }
+  .brand .ic{
+    width:26px; height:26px;
+    border-radius:8px;
+    background:linear-gradient(135deg,var(--accent-1),var(--accent-2));
+    display:flex; align-items:center; justify-content:center;
+    font-size:13px; color:#fff; flex-shrink:0;
+  }
+  .brand .wordmark{ white-space:nowrap; }
+  .brand .accent-text{
+    background:linear-gradient(135deg,var(--accent-1),var(--accent-2));
+    -webkit-background-clip:text; background-clip:text; color:transparent;
+  }
+  .collapse-ic{
+    width:26px; height:26px;
+    border:1px solid var(--line);
+    border-radius:7px;
+    background:none;
+    color:var(--ink-soft);
+    font-size:11px;
+    cursor:default;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .switcher{
+    display:flex; align-items:center; gap:8px;
+    background:rgba(255,255,255,.04);
+    border:1px solid var(--line);
+    border-radius:11px;
+    padding:8px 10px;
+    margin:0 2px 14px;
+  }
+  .switcher .savatar{
+    width:20px; height:20px; border-radius:6px; flex-shrink:0;
+    background:linear-gradient(135deg,var(--accent-1),var(--accent-2));
+    display:flex; align-items:center; justify-content:center;
+    font-size:10.5px; font-weight:700; color:#fff;
+  }
+  .switcher .sname{flex:1; font-size:12.5px; font-weight:600; color:var(--ink);}
+  .switcher .schev{color:var(--ink-soft); font-size:10px;}
+  .searchbox{
+    display:flex; align-items:center; gap:7px;
+    background:rgba(255,255,255,.03);
+    border:1px solid var(--line);
+    border-radius:10px;
+    padding:8px 10px;
+    margin:0 2px 16px;
+    color:var(--ink-soft);
+    font-size:12.5px;
+  }
+  .searchbox input{
+    background:none; border:none; outline:none;
+    color:var(--ink); font-size:12.5px; flex:1; font-family:inherit;
+  }
+  .searchbox kbd{
+    font-size:10px; background:rgba(255,255,255,.06);
+    border:1px solid var(--line); border-radius:5px; padding:1px 5px; color:var(--ink-soft);
+  }
+  .search-results{
+    display:none; flex-direction:column; gap:2px;
+    margin:-10px 2px 14px; max-height:280px; overflow-y:auto;
+    background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:6px;
+  }
+  .search-results.show{display:flex;}
+  .search-results .sr-item{
+    display:flex; flex-direction:column; gap:1px; text-align:left;
+    padding:7px 9px; border-radius:7px; cursor:pointer;
+    background:none; border:none; font-family:inherit; color:var(--ink); width:100%;
+  }
+  .search-results .sr-item:hover{background:rgba(255,255,255,.06);}
+  .search-results .sr-item .sr-title{font-size:12.5px; font-weight:600;}
+  .search-results .sr-item .sr-meta{font-size:10.5px; color:var(--ink-soft); margin-top:1px;}
+  .search-results .sr-empty{padding:10px; font-size:12px; color:var(--ink-soft); text-align:center;}
+  .nav-list{display:flex; flex-direction:column; gap:3px;}
+  .sidebar-spacer{flex:1;}
+  .profile-card{
+    display:flex; align-items:center; gap:9px;
+    padding:10px 8px 2px;
+    border-top:1px solid var(--line);
+    margin-top:10px; padding-top:14px;
+  }
+  .profile-card .pavatar{
+    width:30px; height:30px; border-radius:9px; flex-shrink:0;
+    background:linear-gradient(135deg,var(--accent-1),var(--accent-2));
+    display:flex; align-items:center; justify-content:center;
+    font-size:12.5px; font-weight:700; color:#fff;
+  }
+  .profile-card .pinfo{min-width:0;}
+  .profile-card .pname{font-size:12.5px; font-weight:600; color:var(--ink);}
+  .profile-card .pemail{font-size:10.5px; color:var(--ink-soft); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:150px;}
+  .navbtn{
+    position:relative;
+    display:flex;
+    align-items:center;
+    gap:9px;
+    width:100%;
+    text-align:left;
+    background:none;
+    border:none;
+    padding:10px 11px;
+    border-radius:10px;
+    font-size:13.5px;
+    color:var(--ink-soft);
+    cursor:pointer;
+    font-family:inherit;
+    transition:background .15s ease, color .15s ease;
+  }
+  .navbtn:hover{background:rgba(255,255,255,.05); color:var(--ink);}
+  .navbtn.active{
+    background:var(--accent-soft);
+    color:var(--ink);
+    font-weight:600;
+    box-shadow:inset 0 0 0 1px rgba(34,197,94,.4);
+  }
+  .navbtn.active::before{
+    content:"";
+    position:absolute;
+    left:0; top:8%; bottom:8%;
+    width:3px;
+    border-radius:2px;
+    background:var(--accent);
+  }
+  .navbtn .ic{font-size:15px; width:18px; text-align:center;}
+  .main{flex:1; padding:28px 36px 60px; max-width:1360px;}
+  .tabhead{margin-bottom:22px;}
+  .tabhead h1{font-size:23px; margin:0 0 4px; color:var(--ink); font-weight:700;}
+  .tabhead p{margin:0; color:var(--ink-soft); font-size:13.5px;}
+  .panel{
+    background:var(--panel);
+    border:1px solid var(--line);
+    border-radius:var(--radius);
+    padding:18px 20px;
+    margin-bottom:18px;
+  }
+  .panel h2{font-size:14.5px; margin:0 0 12px; font-weight:600; color:var(--ink);}
+  .row{display:flex; gap:14px; flex-wrap:wrap;}
+  .kpis{display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:12px; margin-bottom:18px;}
+  .kpi{
+    background:var(--panel);
+    border:1px solid var(--line);
+    border-radius:var(--radius);
+    padding:14px 16px;
+    position:relative;
+  }
+  .kpi .lbl{font-size:11.5px; color:var(--ink-soft); text-transform:uppercase; letter-spacing:.03em;}
+  .kpi .val{font-size:21px; font-weight:700; margin-top:4px; color:var(--ink);}
+  .kpi .rm{position:absolute; top:8px; right:8px; cursor:pointer; color:var(--ink-soft); background:none; border:none; font-size:13px;}
+  /* ---- Liquidez (cuentas / plata disponible) ---- */
+  .accounts-grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); gap:14px;}
+  .account-card{background:rgba(255,255,255,.02); border:1px solid var(--line); border-radius:12px; padding:16px 18px;}
+  .account-balance{font-size:23px; font-weight:700; margin:9px 0 14px;}
+  .account-meta{display:flex; align-items:center; gap:8px;}
+  .account-totals{margin-top:12px; padding-top:10px; border-top:1px solid var(--line); font-size:12.5px; color:var(--ink-soft); font-weight:600;}
+  /* ---- resumen tipo dashboard (solo se usa en la vista mobile) ---- */
+  .mobile-summary{ margin-bottom:6px; }
+  .mobile-summary .section-tag{ font-size:11px; color:var(--accent-1); text-transform:uppercase; letter-spacing:.05em; font-weight:700; margin:0 0 8px; }
+  .count-chips{ display:grid; grid-template-columns:repeat(auto-fit,minmax(120px,1fr)); gap:10px; margin-bottom:14px; }
+  .count-chip{ background:var(--panel); border:1px solid var(--line); border-radius:var(--radius); padding:12px 14px; display:flex; align-items:center; gap:10px; }
+  .count-chip .num{ font-size:20px; font-weight:700; color:var(--ink); }
+  .count-chip .lbl{ font-size:11px; color:var(--ink-soft); line-height:1.25; }
+  .mini-card-row{ display:flex; justify-content:space-between; align-items:center; gap:10px; padding:9px 2px; border-bottom:1px solid var(--line); }
+  .mini-card-row:last-child{ border-bottom:none; }
+  .mini-card-row .title{ font-size:13px; font-weight:600; color:var(--ink); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:220px; }
+  .mini-card-row .meta{ font-size:11px; color:var(--ink-soft); }
+  table{width:100%; border-collapse:collapse; font-size:13px;}
+  th{
+    text-align:left;
+    font-size:11px;
+    text-transform:uppercase;
+    letter-spacing:.03em;
+    color:var(--ink-soft);
+    padding:6px 8px;
+    border-bottom:1px solid var(--line);
+  }
+  td{padding:7px 8px; border-bottom:1px solid var(--line); vertical-align:middle; color:var(--ink);}
+  tr:last-child td{border-bottom:none;}
+  input[type=text], input[type=date], input[type=number], select, textarea{
+    font-family:inherit;
+    font-size:13px;
+    padding:6px 8px;
+    border:1px solid var(--line);
+    border-radius:7px;
+    background:rgba(255,255,255,.035);
+    color:var(--ink);
+    width:100%;
+    accent-color:var(--accent);
+  }
+  textarea{resize:vertical; min-height:80px;}
+  .cell-input{border:1px solid transparent; background:transparent; padding:5px 6px; width:100%;}
+  .cell-input:hover, .cell-input:focus{border-color:var(--line); background:rgba(255,255,255,.05);}
+  .tag{
+    display:inline-block;
+    font-size:11px;
+    font-weight:600;
+    padding:3px 9px;
+    border-radius:99px;
+  }
+  .tag.green{background:var(--green-soft); color:var(--green);}
+  .tag.amber{background:var(--amber-soft); color:var(--amber);}
+  .tag.red{background:var(--red-soft); color:var(--red);}
+  .tag.grey{background:rgba(255,255,255,.07); color:var(--ink-soft);}
+  .btn{
+    background:linear-gradient(120deg,var(--accent-1),var(--accent-2));
+    color:#fff;
+    border:none;
+    padding:8px 14px;
+    border-radius:8px;
+    font-size:13px;
+    font-weight:600;
+    cursor:pointer;
+    font-family:inherit;
+    box-shadow:0 4px 14px -4px var(--accent-glow);
+  }
+  .btn:hover{opacity:.92;}
+  .btn.ghost{
+    background:none;
+    color:var(--ink-soft);
+    border:1px solid var(--line);
+    box-shadow:none;
+  }
+  .btn.small{padding:5px 10px; font-size:12px;}
+  .iconbtn{background:none; border:none; cursor:pointer; color:var(--ink-soft); font-size:14px; padding:4px;}
+  .iconbtn:hover{color:var(--red);}
+  .field-label{font-size:12px; font-weight:600; color:var(--ink-soft); margin:14px 0 6px;}
+  .field-label:first-child{margin-top:0;}
+  .savemark{font-size:11px; color:var(--green); opacity:0; transition:opacity .3s; white-space:nowrap;}
+  .savemark.show{opacity:1;}
+  .savemark.err{color:var(--amber);}
+  .undo-toast{
+    position:fixed; left:50%; bottom:26px; transform:translate(-50%,20px);
+    background:#1b1b22; border:1px solid var(--line); border-radius:12px;
+    padding:12px 16px; display:flex; align-items:center; gap:14px;
+    box-shadow:0 20px 50px -18px rgba(0,0,0,.7), 0 0 0 1px rgba(255,255,255,.04);
+    font-size:13px; color:var(--ink); z-index:9999;
+    opacity:0; pointer-events:none; transition:opacity .2s, transform .2s;
+    max-width:90vw;
+  }
+  .undo-toast.show{ opacity:1; transform:translate(-50%,0); pointer-events:auto; }
+  .undo-toast .undo-btn{
+    background:linear-gradient(120deg,var(--accent-1),var(--accent-2));
+    color:#fff; border:none; padding:6px 12px; border-radius:7px;
+    font-size:12.5px; font-weight:700; cursor:pointer; font-family:inherit; flex-shrink:0;
+  }
+  .undo-toast .undo-btn:hover{ opacity:.92; }
+  .empty{color:var(--ink-soft); font-size:13px; padding:14px 4px; font-style:italic;}
+  .journal-entry{border-left:3px solid var(--accent); padding:8px 12px; margin-bottom:10px; background:rgba(255,255,255,.03); border-radius:0 8px 8px 0;}
+  .journal-entry .meta{font-size:11px; color:var(--ink-soft); margin-bottom:3px; display:flex; justify-content:space-between;}
+  .journal-entry .txt{font-size:13.5px; white-space:pre-wrap; color:var(--ink);}
+  .topbar{display:flex; justify-content:space-between; align-items:center;}
+  .progress-wrap{width:100%; background:rgba(255,255,255,.08); border-radius:99px; height:7px; overflow:hidden;}
+  .progress-bar{height:100%; background:linear-gradient(90deg,var(--accent-1),var(--accent-2));}
+  input[type=number]::-webkit-outer-spin-button,
+  input[type=number]::-webkit-inner-spin-button{ -webkit-appearance:none; margin:0; }
+  input[type=number]{ -moz-appearance:textfield; appearance:textfield; }
+  .seg{display:flex; gap:4px; background:rgba(255,255,255,.04); border:1px solid var(--line); border-radius:9px; padding:3px;}
+  .seg button{
+    background:none; border:none; color:var(--ink-soft); font-size:12px; font-weight:600;
+    padding:6px 12px; border-radius:7px; cursor:pointer; font-family:inherit;
+  }
+  .seg button.active{background:linear-gradient(120deg,var(--accent-1),var(--accent-2)); color:#fff;}
+
+  /* Tablero de Objetivos — estilo Trello/Notion: columnas por estado,
+     tarjetas colapsadas que se abren al tocarlas. */
+  .kanban{display:grid; grid-template-columns:repeat(4, minmax(0,1fr)); gap:16px; align-items:start;}
+  .kanban-col{
+    background:rgba(255,255,255,.015); border:1px solid var(--line); border-radius:12px;
+    padding:14px; min-width:0;
+    display:flex; flex-direction:column; gap:11px;
+  }
+  .kanban-col-head{display:flex; align-items:center; gap:8px; padding:2px 4px 8px; border-bottom:1px solid var(--line);}
+  .kanban-col-head .kdot{width:8px; height:8px; border-radius:50%; flex-shrink:0;}
+  .kanban-col-head .kname{flex:1; font-size:12.5px; font-weight:700; color:var(--ink); text-transform:uppercase; letter-spacing:.03em;}
+  .kanban-col-head .kcount{font-size:11px; color:var(--ink-soft); background:rgba(255,255,255,.06); border-radius:99px; padding:1px 8px;}
+  .kanban-empty{font-size:12px; color:var(--ink-soft); text-align:center; padding:18px 8px; border:1.5px dashed var(--line); border-radius:9px;}
+  .kcard{
+    border:1px solid var(--line); border-radius:11px; background:var(--panel);
+    overflow:hidden; cursor:pointer; transition:border-color .15s ease;
+  }
+  .kcard:hover{border-color:rgba(255,255,255,.18);}
+  .kcard.dragging{opacity:.35;}
+  .kcard-head{padding:13px 14px 10px;}
+  .kcard-title-row{display:flex; align-items:flex-start; gap:9px;}
+  .kcard-dot{width:8px; height:8px; border-radius:50%; flex-shrink:0; margin-top:6px;}
+  .kcard-title-text{
+    flex:1; min-width:0; font-weight:600; font-size:15px; line-height:1.4;
+    color:var(--ink); white-space:normal; word-break:break-word;
+  }
+  .kcard-due{font-size:11px; color:var(--ink-soft); margin:6px 0 0 17px;}
+  .kcard-chevron{font-size:11px; color:var(--ink-soft); flex-shrink:0; margin-top:4px; transition:transform .15s ease;}
+  .kcard.expanded .kcard-chevron{transform:rotate(180deg); color:var(--accent);}
+  .kcard-progress{height:3px; background:rgba(255,255,255,.06);}
+  .kcard-progress-fill{height:100%; background:var(--accent);}
+  .kcard-body{display:none; flex-direction:column; gap:12px; padding:6px 14px 14px;}
+  .kcard.expanded .kcard-body{display:flex;}
+  @media (max-width:900px){
+    .kanban{grid-template-columns:repeat(2, minmax(0,1fr));}
+  }
+  @media (max-width:760px){
+    .kanban{grid-template-columns:1fr;}
+  }
+  .currency-pill{font-size:10.5px; font-weight:700; color:var(--ink-soft); background:rgba(255,255,255,.06); border-radius:6px; padding:2px 6px; margin-left:6px;}
+  .status-select{font-weight:700; font-size:12px; cursor:pointer;}
+  .status-select.status-green{ background:var(--green-soft); color:var(--green); border-color:transparent; }
+  .status-select.status-amber{ background:var(--amber-soft); color:var(--amber); border-color:transparent; }
+  .status-select.status-red{ background:var(--red-soft); color:var(--red); border-color:transparent; }
+  .status-select.status-grey{ background:rgba(255,255,255,.07); color:var(--ink-soft); border-color:transparent; }
+  .status-summary{display:flex; gap:10px; flex-wrap:wrap; margin-bottom:14px;}
+  .status-chip{
+    flex:1; min-width:150px; border-radius:var(--radius); padding:10px 14px; border:1px solid var(--line);
+    display:flex; align-items:center; gap:10px;
+  }
+  .status-chip .dot{width:9px; height:9px; border-radius:50%; flex-shrink:0;}
+  .status-chip .dot.green{background:var(--green);}
+  .status-chip .dot.amber{background:var(--amber);}
+  .status-chip .dot.red{background:var(--red);}
+  .status-chip .txt{min-width:0;}
+  .status-chip .lbl2{font-size:11px; color:var(--ink-soft);}
+  .status-chip .val2{font-size:14.5px; font-weight:700; color:var(--ink);}
+  .chart-grid{display:grid; grid-template-columns:1fr 1fr; gap:16px;}
+  .chart-box{height:230px; position:relative;}
+  .chart-box .chart-empty{position:absolute; inset:0; display:flex; align-items:center; justify-content:center; color:var(--ink-soft); font-size:12.5px; font-style:italic;}
+  @media (max-width:680px){ .chart-grid{grid-template-columns:1fr;} }
+  .cal-grid{display:grid; grid-template-columns:repeat(7,1fr); gap:6px; margin-top:10px;}
+  .cal-dow{font-size:10.5px; color:var(--ink-soft); text-align:center; text-transform:uppercase; padding-bottom:4px;}
+  .cal-cell{
+    aspect-ratio:1; border-radius:8px; border:1px solid var(--line); background:rgba(255,255,255,.02);
+    padding:5px 6px; font-size:11.5px; color:var(--ink-soft); position:relative; cursor:default;
+  }
+  .cal-cell.empty{border:none; background:none;}
+  .cal-cell.today{border-color:var(--accent); box-shadow:0 0 0 1px var(--accent);}
+  .cal-cell .n{font-weight:600; color:var(--ink);}
+  .cal-dot{position:absolute; bottom:5px; left:6px; width:5px; height:5px; border-radius:50%; background:linear-gradient(120deg,var(--accent-1),var(--accent-2));}
+  .event-row{display:flex; align-items:center; gap:10px; padding:8px 4px; border-bottom:1px solid var(--line);}
+  .event-row:last-child{border-bottom:none;}
+  .event-date{
+    width:46px; flex-shrink:0; text-align:center; background:rgba(255,255,255,.04); border-radius:8px; padding:5px 0;
+    font-size:10.5px; color:var(--ink-soft); font-weight:600; line-height:1.2;
+  }
+  .event-date .d{font-size:15px; color:var(--ink);}
+  @media (max-width:760px){
+    body{ -webkit-text-size-adjust:100%; }
+    .app{flex-direction:column; margin:0; border-radius:0; min-height:100vh; box-shadow:none;}
+    .sidebar{
+      width:100%; flex-direction:row; align-items:center; overflow-x:auto; -webkit-overflow-scrolling:touch;
+      border-radius:0; padding:8px 10px; gap:0; border-right:none; border-bottom:1px solid var(--line);
+      position:sticky; top:0; z-index:5; background:#0c0c10;
+    }
+    .brand-row{padding:0 8px 0 0; flex-shrink:0;}
+    .collapse-ic, .switcher, .searchbox, .search-results, .profile-card, .sidebar-spacer{display:none;}
+    .nav-list{flex-direction:row; flex-shrink:0; gap:2px;}
+    .navbtn{flex-direction:column; gap:2px; padding:6px 10px; font-size:10.5px; white-space:nowrap;}
+    .navbtn .ic{width:auto; font-size:16px;}
+    .navbtn.active::after{display:none;}
+    .main{padding:16px 14px 40px;}
+    .tabhead h1{font-size:19px;}
+    .kpis{grid-template-columns:repeat(auto-fit,minmax(130px,1fr));}
+    .panel{padding:14px 14px;}
+    .status-summary{flex-direction:column;}
+
+    /* tablas: se mantienen como tabla compacta con scroll horizontal (igual que antes),
+       solo se les da más espacio a las columnas de texto para que no se corten */
+    table{font-size:12px;}
+    th, td{padding:6px 5px;}
+    table.rtable .cell-input{ min-width:110px; }
+
+    /* inputs a 16px: por debajo de eso, Safari en iPhone hace zoom automático
+       al tocar un campo, que es justo lo que hacía "molesto" escribir en mobile */
+    input[type=text], input[type=date], input[type=number], textarea, select{ font-size:16px; }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <div class="sidebar" id="sidebar">
+    <div class="brand-row">
+      <div class="brand"><span class="ic">N</span><span class="wordmark">Nacho<span class="accent-text">bzn</span></span></div>
+      <button class="collapse-ic" title="Colapsar">⟨⟩</button>
+    </div>
+
+    <div class="switcher">
+      <span class="savatar">N</span>
+      <span class="sname">Nachobzn</span>
+      <span class="schev">⌄</span>
+    </div>
+
+    <div class="searchbox">
+      <span>⌕</span>
+      <input type="text" id="globalSearch" placeholder="Buscar..." autocomplete="off" />
+      <kbd>⌘K</kbd>
+    </div>
+    <div class="search-results" id="searchResults"></div>
+
+    <div class="nav-list" id="navList">
+      <!-- nav buttons injected by JS -->
+    </div>
+
+    <div class="sidebar-spacer"></div>
+
+    <div class="profile-card">
+      <span class="pavatar">N</span>
+      <div class="pinfo">
+        <div class="pname">Nacho</div>
+        <div class="pemail">nachobzn.contacto@gmail.com</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="main">
+    <div class="topbar">
+      <div class="tabhead">
+        <h1 id="tabTitle"></h1>
+        <p id="tabDesc"></p>
+      </div>
+      <div class="savemark" id="saveMark">Guardado ✓</div>
+    </div>
+    <div id="tabContent"><div class="empty">Cargando tu dashboard…</div></div>
+  </div>
+</div>
+
+<div id="undoToast" class="undo-toast"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.0/dist/chart.umd.js" integrity="sha384-iU8HYtnGQ8Cy4zl7gbNMOhsDTTKX02BTXptVP/vqAWIaTfM7isw76iyZCsjL2eVi" crossorigin="anonymous"></script>
+<script>
+/* ---------------------------------------------------------
+   Nachobzn Dashboard — single-file, localStorage-backed
+--------------------------------------------------------- */
+
+const STORAGE_KEY = "nachobzn-dashboard-v1";
+
+/* Supabase: guarda los datos en la nube para que se vean iguales
+   en cualquier computadora. La anon key es pública por diseño de
+   Supabase — el acceso real lo controlan las políticas RLS de la tabla. */
+const SUPABASE_URL = "https://faqmzyyynyzwcdcppuoa.supabase.co";
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZhcW16eXl5bnl6d2NkY3BwdW9hIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI4NDM5NzUsImV4cCI6MjA5ODQxOTk3NX0.FFSeB2t9vqbfu9koFg2NyW3qgu3_JmCsOu75XtM4CWE";
+const ROW_ID = "nachobzn";
+
+const TABS = [
+  {id:"objetivos", icon:"◎", label:"Objetivos", desc:"Tus metas activas, plazos y progreso."},
+  {id:"finanzas", icon:"$", label:"Finanzas", desc:"Ingresos, gastos y balance."},
+  {id:"inversiones", icon:"◆", label:"Inversiones", desc:"Crypto, dólares y acciones — qué invertiste y en qué."},
+  {id:"clientes", icon:"◐", label:"Clientes", desc:"Estado de cada cliente y próximas acciones."},
+  {id:"tareas", icon:"☑", label:"Tareas pendientes", desc:"Lo que tenés que hacer, ordenado por prioridad."},
+  {id:"calendario", icon:"▤", label:"Calendario", desc:"Lo que se viene, con vista previa de Google Calendar."},
+  {id:"estadisticas", icon:"▲", label:"Estadísticas", desc:"Métricas clave que querés monitorear."},
+  {id:"contenido", icon:"▣", label:"Contenido", desc:"Lo que ya publicaste."},
+  {id:"instagram", icon:"◉", label:"Instagram", desc:"Qué contenido está funcionando y cuál no."},
+  {id:"plancontenido", icon:"▦", label:"Plan de contenido", desc:"Ideas y piezas en camino."},
+  {id:"estrategia", icon:"✦", label:"Estrategia", desc:"Visión, público y pilares."},
+  {id:"notas", icon:"✎", label:"Notas mentales", desc:"Volcado libre de ideas y pensamientos."},
+  {id:"papelera", icon:"🗑", label:"Papelera", desc:"Elementos borrados — restauralos si fue sin querer."},
+];
+
+const CURRENCIES = ["ARS","USD","EUR","Otra"];
+const CURRENCY_SYMBOL = {ARS:"$", USD:"US$", EUR:"€", Otra:""};
+
+function uid(){ return Math.random().toString(36).slice(2,10); }
+function todayISO(){ return new Date().toISOString().slice(0,10); }
+function fmtMoney(n){
+  n = Number(n)||0;
+  return n.toLocaleString("es-AR",{minimumFractionDigits:0, maximumFractionDigits:2});
+}
+function fmtQty(n){
+  n = Number(n)||0;
+  if(n===0) return "0";
+  const decimals = Math.abs(n) < 1 ? 8 : (Math.abs(n) < 100 ? 4 : 2);
+  let s = n.toFixed(decimals);
+  if(s.indexOf(".")!==-1) s = s.replace(/0+$/,"").replace(/\.$/,"");
+  return s;
+}
+function parseTargets(str){
+  return (str||"").split("/").map(s=>parseFloat(s.trim())).filter(n=>!isNaN(n));
+}
+// dado un monto invertido (ej. en USDT) y un precio, calcula cuánta cantidad
+// del activo se compró/vendió — así el usuario no tiene que sacar la cuenta a mano
+function calcQtyFromAmountPrice(amount, price){
+  const a = Number(amount), p = Number(price);
+  if(!a || !p) return null;
+  const q = a/p;
+  if(!isFinite(q)) return null;
+  return Math.round(q*1e8)/1e8;
+}
+function fmtDateNice(iso){
+  if(!iso) return "—";
+  const d = new Date(iso+"T00:00:00");
+  if(isNaN(d)) return iso;
+  return d.toLocaleDateString("es-AR",{day:"2-digit",month:"short",year:"numeric"});
+}
+
+function defaultData(){
+  return {
+    goals:[],
+    finances:[],
+    investments:[],
+    invPurchases:[],
+    clients:[],
+    tasks:[],
+    stats:[
+      {id:uid(), label:"Seguidores totales", value:""},
+      {id:uid(), label:"Ingresos del mes", value:""},
+      {id:uid(), label:"Clientes activos", value:""},
+    ],
+    content:[],
+    stories:[],
+    contentPlan:[],
+    strategy:{vision:"", audience:"", pillars:"", edge:"", goals6m:""},
+    notes:{scratch:"", entries:[]},
+    events:[],
+    trash:[],
+    accounts:[
+      {id:uid(), name:"BBVA", currency:"ARS", opening:0},
+      {id:uid(), name:"Efectivo", currency:"ARS", opening:0},
+      {id:uid(), name:"Crypto", currency:"USD", opening:0},
+      {id:uid(), name:"Acciones", currency:"USD", opening:0},
+      {id:uid(), name:"Dólares ahorro", currency:"USD", opening:0},
+    ],
+  };
+}
+
+let DATA = defaultData();
+
+function loadLocalCache(){
+  try{
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if(!raw) return defaultData();
+    return Object.assign(defaultData(), JSON.parse(raw));
+  }catch(e){ return defaultData(); }
+}
+
+async function loadRemote(){
+  const cached = loadLocalCache();
+  try{
+    const res = await fetch(
+      `${SUPABASE_URL}/rest/v1/dashboard_data?id=eq.${ROW_ID}&select=data`,
+      { headers:{ apikey: SUPABASE_ANON_KEY, Authorization:`Bearer ${SUPABASE_ANON_KEY}` } }
+    );
+    if(res.ok){
+      const rows = await res.json();
+      if(rows && rows[0] && rows[0].data){
+        const merged = Object.assign(defaultData(), rows[0].data);
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(merged));
+        return merged;
+      }
+    }
+  }catch(e){ console.warn("Sin conexión a Supabase, uso copia local", e); }
+  return cached;
+}
+
+let saveTimer = null;
+let remoteSaveTimer = null;
+function save(){
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(DATA));
+  const mark = document.getElementById("saveMark");
+  mark.classList.remove("err");
+  mark.textContent = "Guardando…";
+  mark.classList.add("show");
+  clearTimeout(remoteSaveTimer);
+  remoteSaveTimer = setTimeout(syncRemote, 700);
+}
+
+async function syncRemote(){
+  const mark = document.getElementById("saveMark");
+  try{
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/dashboard_data`, {
+      method:"POST",
+      headers:{
+        apikey: SUPABASE_ANON_KEY,
+        Authorization:`Bearer ${SUPABASE_ANON_KEY}`,
+        "Content-Type":"application/json",
+        Prefer:"resolution=merge-duplicates,return=minimal"
+      },
+      body: JSON.stringify({ id:ROW_ID, data:DATA, updated_at:new Date().toISOString() })
+    });
+    mark.classList.toggle("err", !res.ok);
+    mark.textContent = res.ok ? "Guardado ✓" : "Sin conexión (local)";
+  }catch(e){
+    mark.classList.add("err");
+    mark.textContent = "Sin conexión (local)";
+  }
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(()=>mark.classList.remove("show"), 1500);
+}
+
+let activeTab = "objetivos";
+
+function buildSidebar(){
+  const sb = document.getElementById("navList");
+  TABS.forEach(t=>{
+    const b = document.createElement("button");
+    b.className = "navbtn" + (t.id===activeTab ? " active":"");
+    b.id = "nav-"+t.id;
+    b.innerHTML = `<span class="ic">${t.icon}</span><span>${t.label}</span>`;
+    b.onclick = ()=>{ activeTab = t.id; renderAll(); };
+    sb.appendChild(b);
+  });
+  setupGlobalSearch();
+}
+
+// Búsqueda del sidebar: busca por título/nombre/descripción en todas las
+// secciones y muestra resultados clickeables que saltan a la pestaña correspondiente.
+function runGlobalSearch(query){
+  const q = (query||"").trim().toLowerCase();
+  if(!q) return [];
+  const results = [];
+  const push = (tab, title, meta)=>{
+    const hay = (String(title||"")+" "+String(meta||"")).toLowerCase();
+    if(hay.includes(q)) results.push({tab, title: title || "(sin título)", meta: meta || ""});
+  };
+  DATA.goals.forEach(g=> push("objetivos", g.title, [g.category,g.status].filter(Boolean).join(" · ")));
+  DATA.finances.forEach(f=> push("finanzas", f.desc, [f.category,f.type].filter(Boolean).join(" · ")));
+  DATA.investments.forEach(i=> push("inversiones", i.asset, [i.type,i.platform].filter(Boolean).join(" · ")));
+  DATA.clients.forEach(c=> push("clientes", c.name, [c.status,c.contact].filter(Boolean).join(" · ")));
+  DATA.tasks.forEach(t=> push("tareas", t.title, t.status||""));
+  DATA.events.forEach(e=> push("calendario", e.title, e.date||""));
+  DATA.content.forEach(c=> push("contenido", c.tema, [c.format,c.category].filter(Boolean).join(" · ")));
+  DATA.contentPlan.forEach(c=> push("plancontenido", c.title, [c.platform,c.status].filter(Boolean).join(" · ")));
+  (DATA.notes.entries||[]).forEach(n=> push("notas", n.text ? n.text.slice(0,60) : "", ""));
+  return results.slice(0, 30);
+}
+
+function renderSearchResults(query){
+  const box = document.getElementById("searchResults");
+  if(!box) return;
+  const q = (query||"").trim();
+  box.innerHTML = "";
+  if(!q){ box.classList.remove("show"); return; }
+  const results = runGlobalSearch(q);
+  if(results.length===0){
+    const e = document.createElement("div"); e.className="sr-empty"; e.textContent="Sin resultados";
+    box.appendChild(e);
+  } else {
+    const tabLabel = {}; TABS.forEach(t=> tabLabel[t.id]=t.label);
+    results.forEach(r=>{
+      const item = document.createElement("button"); item.className="sr-item"; item.type="button";
+      const t = document.createElement("span"); t.className="sr-title"; t.textContent = r.title;
+      const m = document.createElement("span"); m.className="sr-meta";
+      m.textContent = (tabLabel[r.tab]||r.tab) + (r.meta ? " · "+r.meta : "");
+      item.appendChild(t); item.appendChild(m);
+      item.onclick = ()=>{
+        activeTab = r.tab;
+        const inp = document.getElementById("globalSearch");
+        if(inp) inp.value = "";
+        box.innerHTML = ""; box.classList.remove("show");
+        renderAll();
+      };
+      box.appendChild(item);
+    });
+  }
+  box.classList.add("show");
+}
+
+function setupGlobalSearch(){
+  const inp = document.getElementById("globalSearch");
+  const box = document.getElementById("searchResults");
+  if(!inp || !box) return;
+  inp.addEventListener("input", ()=> renderSearchResults(inp.value));
+  inp.addEventListener("focus", ()=>{ if(inp.value.trim()) renderSearchResults(inp.value); });
+  inp.addEventListener("keydown", (e)=>{
+    if(e.key === "Escape"){ inp.value=""; box.innerHTML=""; box.classList.remove("show"); inp.blur(); }
+  });
+  document.addEventListener("click", (e)=>{
+    if(!box.contains(e.target) && e.target!==inp){ box.classList.remove("show"); }
+  });
+  document.addEventListener("keydown", (e)=>{
+    if((e.metaKey || e.ctrlKey) && e.key.toLowerCase()==="k"){
+      e.preventDefault(); inp.focus(); inp.select();
+    }
+  });
+}
+
+function renderAll(){
+  // preservar foco + cursor del campo que se estaba editando, para que
+  // un re-render (por ej. al recalcular totales/gráficos) no interrumpa la escritura
+  const active = document.activeElement;
+  let focusId = null, selStart = null, selEnd = null;
+  try{
+    if(active && active.dataset && active.dataset.focusId){
+      focusId = active.dataset.focusId;
+      if(typeof active.selectionStart === "number"){
+        selStart = active.selectionStart;
+        selEnd = active.selectionEnd;
+      }
+    }
+  }catch(e){ /* algunos inputs (number) no soportan selectionStart */ }
+
+  // preservar la posición de scroll: reconstruir #tabContent no debería
+  // "teletransportar" al usuario arriba de todo cada vez que escribe,
+  // agrega algo o abre/cierra un desplegable
+  const scrollX = window.scrollX || document.documentElement.scrollLeft || 0;
+  const scrollY = window.scrollY || document.documentElement.scrollTop || document.body.scrollTop || 0;
+
+  TABS.forEach(t=>{
+    document.getElementById("nav-"+t.id).classList.toggle("active", t.id===activeTab);
+  });
+  const t = TABS.find(x=>x.id===activeTab);
+  document.getElementById("tabTitle").textContent = t.label;
+  document.getElementById("tabDesc").textContent = t.desc;
+  const c = document.getElementById("tabContent");
+  c.innerHTML = "";
+  RENDERERS[activeTab](c);
+
+  if(focusId){
+    const el = c.querySelector(`[data-focus-id="${CSS.escape(focusId)}"]`);
+    if(el){
+      el.focus();
+      if(selStart!=null){
+        try{ el.setSelectionRange(selStart, selEnd); }catch(e){}
+      }
+    }
+  }
+
+  window.scrollTo(scrollX, scrollY);
+  if(typeof requestAnimationFrame === "function"){
+    requestAnimationFrame(()=>window.scrollTo(scrollX, scrollY));
+  } else {
+    setTimeout(()=>window.scrollTo(scrollX, scrollY), 0);
+  }
+}
+
+/* ---------- papelera / deshacer ----------
+   Ningún borrado en el dashboard es definitivo al toque: todo lo que se
+   elimina (movimientos, compras, clientes, tareas, notas, etc.) pasa por acá,
+   que lo manda a DATA.trash en vez de perderlo. Desde ahí se puede restaurar
+   con el toast de "Deshacer" que aparece al toque, o más tarde desde la
+   pestaña Papelera. */
+
+const TRASH_SECTION_LABEL = {
+  goals:"Objetivos", finances:"Finanzas", investments:"Inversiones · Posiciones",
+  invPurchases:"Inversiones · Compras y ventas", clients:"Clientes", tasks:"Tareas pendientes",
+  events:"Calendario", stats:"Estadísticas", content:"Contenido · Reels y carruseles",
+  stories:"Contenido · Historias", contentPlan:"Plan de contenido", notesEntries:"Notas mentales",
+  accounts:"Finanzas · Liquidez"
+};
+
+function labelForTrashItem(listKey, item){
+  switch(listKey){
+    case "goals": return item.title || "Objetivo sin título";
+    case "finances": return (item.desc || item.category || "Movimiento") + (item.type ? " · "+item.type : "");
+    case "investments": return "Posición: " + (item.asset || "sin nombre");
+    case "invPurchases": return (item.asset || "Operación") + " · " + (item.operation || "Compra");
+    case "clients": return item.name || "Cliente sin nombre";
+    case "tasks": return item.title || "Tarea sin título";
+    case "events": return item.title || "Evento sin título";
+    case "stats": return item.label || "Estadística";
+    case "content": return item.tema || (item.format || "Contenido");
+    case "stories": return item.tema || "Historia";
+    case "contentPlan": return item.title || "Idea sin título";
+    case "notesEntries": return (item.text || "").slice(0,70) || "Nota";
+    case "accounts": return item.name || "Cuenta sin nombre";
+    default: return "Elemento";
+  }
+}
+
+function softDelete(listKey, item){
+  if(!DATA.trash) DATA.trash = [];
+  DATA.trash.unshift({ id:uid(), listKey, item, deletedAt:new Date().toISOString() });
+  if(listKey==="notesEntries"){
+    DATA.notes.entries = DATA.notes.entries.filter(x=>x.id!==item.id);
+  } else {
+    DATA[listKey] = (DATA[listKey]||[]).filter(x=>x.id!==item.id);
+  }
+  save();
+  renderAll();
+  showUndoToast(listKey, item);
+}
+
+function restoreTrashItem(trashId){
+  const entry = (DATA.trash||[]).find(t=>t.id===trashId);
+  if(!entry) return;
+  DATA.trash = DATA.trash.filter(t=>t.id!==trashId);
+  if(entry.listKey==="notesEntries"){
+    DATA.notes.entries.unshift(entry.item);
+  } else {
+    if(!DATA[entry.listKey]) DATA[entry.listKey] = [];
+    DATA[entry.listKey].unshift(entry.item);
+  }
+  save();
+  renderAll();
+}
+
+function purgeTrashItem(trashId){
+  DATA.trash = (DATA.trash||[]).filter(t=>t.id!==trashId);
+  save();
+  renderAll();
+}
+
+let undoToastTimer = null;
+function showUndoToast(listKey, item){
+  const toast = document.getElementById("undoToast");
+  if(!toast) return;
+  const label = labelForTrashItem(listKey, item);
+  const span = document.createElement("span");
+  span.textContent = "Eliminado: " + label;
+  const btn = document.createElement("button");
+  btn.className = "undo-btn"; btn.textContent = "Deshacer";
+  btn.onclick = ()=>{
+    const entry = (DATA.trash||[]).find(t=>t.listKey===listKey && t.item.id===item.id);
+    if(entry) restoreTrashItem(entry.id);
+    hideUndoToast();
+  };
+  toast.innerHTML = "";
+  toast.appendChild(span);
+  toast.appendChild(btn);
+  toast.classList.add("show");
+  clearTimeout(undoToastTimer);
+  undoToastTimer = setTimeout(hideUndoToast, 7000);
+}
+function hideUndoToast(){
+  const toast = document.getElementById("undoToast");
+  if(toast) toast.classList.remove("show");
+}
+
+function renderPapelera(container){
+  const trash = DATA.trash || [];
+  const panel = document.createElement("div"); panel.className="panel";
+  const head = document.createElement("div");
+  head.style.cssText="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;";
+  head.innerHTML = `<h2 style="margin:0;">Elementos eliminados</h2>`;
+  if(trash.length){
+    const clearBtn = document.createElement("button");
+    clearBtn.className="btn ghost small"; clearBtn.textContent="Vaciar papelera";
+    clearBtn.onclick=()=>{
+      if(confirm("¿Vaciar la papelera? Esta acción no se puede deshacer.")){
+        DATA.trash = [];
+        save(); renderAll();
+      }
+    };
+    head.appendChild(clearBtn);
+  }
+  panel.appendChild(head);
+
+  if(trash.length===0){
+    const e=document.createElement("div"); e.className="empty"; e.textContent="No hay nada eliminado — todo lo que borres en cualquier pestaña va a aparecer acá para que puedas recuperarlo.";
+    panel.appendChild(e);
+  } else {
+    const tableWrap = document.createElement("div"); tableWrap.style.overflowX="auto";
+    const table = document.createElement("table"); table.className="rtable";
+    table.innerHTML = `<thead><tr><th>Sección</th><th>Elemento</th><th>Eliminado</th><th></th></tr></thead>`;
+    const tbody = document.createElement("tbody");
+    trash.forEach(entry=>{
+      const tr = document.createElement("tr");
+      tr.appendChild(td("Sección", document.createTextNode(TRASH_SECTION_LABEL[entry.listKey] || entry.listKey)));
+      tr.appendChild(td("Elemento", document.createTextNode(labelForTrashItem(entry.listKey, entry.item))));
+      const d = new Date(entry.deletedAt);
+      const whenStr = isNaN(d) ? "—" : d.toLocaleString("es-AR",{day:"2-digit",month:"short",year:"numeric",hour:"2-digit",minute:"2-digit"});
+      tr.appendChild(td("Eliminado", document.createTextNode(whenStr)));
+      const actions = document.createElement("div"); actions.style.cssText="display:flex;gap:8px;justify-content:flex-end;";
+      const restoreBtn = document.createElement("button"); restoreBtn.className="btn small"; restoreBtn.textContent="Restaurar";
+      restoreBtn.onclick=()=>restoreTrashItem(entry.id);
+      const purgeBtn = document.createElement("button"); purgeBtn.className="iconbtn"; purgeBtn.textContent="✕"; purgeBtn.title="Eliminar definitivamente";
+      purgeBtn.onclick=()=>purgeTrashItem(entry.id);
+      actions.appendChild(restoreBtn); actions.appendChild(purgeBtn);
+      tr.appendChild(td(null, actions));
+      tbody.appendChild(tr);
+    });
+    table.appendChild(tbody);
+    tableWrap.appendChild(table);
+    panel.appendChild(tableWrap);
+  }
+  container.appendChild(panel);
+}
+
+/* ---------- generic helpers ---------- */
+
+function debounce(fn, wait=700){
+  let t;
+  return function(...args){
+    clearTimeout(t);
+    t = setTimeout(()=>fn.apply(this,args), wait);
+  };
+}
+const debouncedRenderAll = debounce(()=>renderAll(), 800);
+
+function makeSelect(value, options, onChange){
+  const sel = document.createElement("select");
+  sel.className = "cell-input";
+  options.forEach(o=>{
+    const op = document.createElement("option");
+    op.value = o; op.textContent = o;
+    if(o===value) op.selected = true;
+    sel.appendChild(op);
+  });
+  sel.onchange = ()=>onChange(sel.value);
+  return sel;
+}
+function makeTextInput(value, onChange, type="text", placeholder="", focusId=null){
+  const inp = document.createElement("input");
+  inp.type = type;
+  inp.className = "cell-input";
+  inp.value = value || "";
+  inp.placeholder = placeholder;
+  if(focusId) inp.dataset.focusId = focusId;
+  inp.oninput = ()=>onChange(inp.value);
+  return inp;
+}
+// Crea una <td> con data-label: en desktop es invisible (columna normal),
+// en mobile la tabla se convierte en tarjetas y el label aparece al lado del valor.
+function td(label, child){
+  const cell = document.createElement("td");
+  if(label) cell.dataset.label = label;
+  cell.appendChild(child);
+  return cell;
+}
+
+const STATUS_COLOR = { "Confirmado":"green", "A confirmar":"amber", "No confirmado":"red" };
+function makeStatusSelect(value, onChange){
+  const sel = document.createElement("select");
+  const cls = STATUS_COLOR[value] || "amber";
+  sel.className = "cell-input status-select status-"+cls;
+  ["Confirmado","A confirmar","No confirmado"].forEach(o=>{
+    const op = document.createElement("option");
+    op.value = o; op.textContent = o;
+    if(o===value) op.selected = true;
+    sel.appendChild(op);
+  });
+  sel.onchange = ()=>{
+    const newCls = STATUS_COLOR[sel.value] || "amber";
+    sel.className = "cell-input status-select status-"+newCls;
+    onChange(sel.value);
+  };
+  return sel;
+}
+function tagFor(status){
+  const map = {
+    "Cumplido":"green","Activo":"green","Publicado":"green","Hecho":"green","Pagado":"green",
+    "En progreso":"amber","Prospecto":"amber","Guion":"amber","Grabado":"amber","Editado":"amber","Pendiente":"amber",
+    "No iniciado":"grey","Idea":"grey","Pausado":"grey",
+    "Cancelado":"red","Finalizado":"red","Vencido":"red"
+  };
+  const cls = map[status] || "grey";
+  const span = document.createElement("span");
+  span.className = "tag "+cls;
+  span.textContent = status;
+  return span;
+}
+
+/* ---------- OBJETIVOS ---------- */
+const GOAL_STATUS_COLOR = { "No iniciado":"grey", "En progreso":"amber", "Cumplido":"green", "Cancelado":"red" };
+function makeGoalStatusSelect(value, onChange){
+  const sel = document.createElement("select");
+  const cls = GOAL_STATUS_COLOR[value] || "grey";
+  sel.className = "cell-input status-select status-"+cls;
+  Object.keys(GOAL_STATUS_COLOR).forEach(o=>{
+    const op = document.createElement("option");
+    op.value = o; op.textContent = o;
+    if(o===value) op.selected = true;
+    sel.appendChild(op);
+  });
+  sel.onchange = ()=>{
+    sel.className = "cell-input status-select status-"+(GOAL_STATUS_COLOR[sel.value]||"grey");
+    onChange(sel.value);
+  };
+  return sel;
+}
+
+function makeSegmentedProgress(value, onChange){
+  const wrap = document.createElement("div");
+  wrap.style.cssText = "display:flex; gap:8px; align-items:center;";
+  const segs = document.createElement("div");
+  segs.style.cssText = "display:flex; gap:3px; flex:1;";
+  const segCount = 10;
+  const filled = Math.round((Number(value)||0)/10);
+  for(let i=0;i<segCount;i++){
+    const seg = document.createElement("button");
+    seg.type = "button";
+    seg.title = ((i+1)*10)+"%";
+    seg.style.cssText = `flex:1; height:14px; border-radius:4px; border:none; cursor:pointer; padding:0; transition:background .15s;
+      background:${i<filled ? "linear-gradient(90deg,var(--accent-1),var(--accent-2))" : "rgba(255,255,255,.08)"};`;
+    seg.onclick = ()=>{
+      const newVal = (i+1)*10;
+      onChange(newVal===Number(value) ? 0 : newVal);
+    };
+    segs.appendChild(seg);
+  }
+  const label = document.createElement("span");
+  label.style.cssText = "font-size:12px; font-weight:700; color:var(--ink); min-width:34px; text-align:right; flex-shrink:0;";
+  label.textContent = (Number(value)||0)+"%";
+  wrap.appendChild(segs);
+  wrap.appendChild(label);
+  return wrap;
+}
+
+const GOAL_CATEGORIES = ["Personal","Negocio","Contenido","Finanzas","Salud"];
+const GOAL_STATUS_DOT = { "No iniciado":"var(--ink-soft)", "En progreso":"var(--amber)", "Cumplido":"var(--green)", "Cancelado":"var(--red)" };
+const GOAL_COLUMNS = ["No iniciado","En progreso","Cumplido","Cancelado"];
+
+// tarjetas abiertas (desglosadas) — solo estado visual en memoria, no se guarda
+let expandedGoalIds = new Set();
+
+function fmtDeadlineShort(iso){
+  if(!iso) return "";
+  const d = new Date(iso+"T00:00:00");
+  if(isNaN(d)) return "";
+  return d.toLocaleDateString("es-AR",{day:"2-digit",month:"short"});
+}
+
+// mueve una tarjeta a otra columna (cambia estado) y la deja arriba de esa
+// columna — así el tablero refleja tanto el estado como la prioridad relativa
+function moveGoalToStatus(goalId, newStatus){
+  const g = DATA.goals.find(x=>x.id===goalId);
+  if(!g || g.status===newStatus) return;
+  const idx = DATA.goals.indexOf(g);
+  DATA.goals.splice(idx,1);
+  g.status = newStatus;
+  DATA.goals.unshift(g);
+  save(); renderAll();
+}
+
+// mueve una tarjeta un lugar arriba/abajo dentro de su propia columna,
+// preservando el orden dentro de las demás — así se puede fijar prioridad
+// a mano sin necesidad de arrastrar (útil en mobile).
+function moveGoalWithinStatus(g, dir){
+  const sameStatus = DATA.goals.filter(x=>x.status===g.status);
+  const idx = sameStatus.indexOf(g);
+  const swapIdx = idx+dir;
+  if(swapIdx<0 || swapIdx>=sameStatus.length) return;
+  const other = sameStatus[swapIdx];
+  const gi = DATA.goals.indexOf(g), oi = DATA.goals.indexOf(other);
+  DATA.goals[gi] = other; DATA.goals[oi] = g;
+  save(); renderAll();
+}
+
+function renderGoalCard(g){
+  const isExp = expandedGoalIds.has(g.id);
+  const card = document.createElement("div");
+  card.className = "kcard" + (isExp ? " expanded" : "");
+  card.draggable = true;
+  card.ondragstart = (e)=>{ e.dataTransfer.setData("text/plain", g.id); e.dataTransfer.effectAllowed = "move"; card.classList.add("dragging"); };
+  card.ondragend = ()=> card.classList.remove("dragging");
+
+  const head = document.createElement("div");
+  head.className = "kcard-head";
+  head.onclick = ()=>{
+    if(expandedGoalIds.has(g.id)) expandedGoalIds.delete(g.id); else expandedGoalIds.add(g.id);
+    card.classList.toggle("expanded");
+  };
+
+  const titleRow = document.createElement("div"); titleRow.className = "kcard-title-row";
+  const dot = document.createElement("span"); dot.className = "kcard-dot";
+  dot.style.background = GOAL_STATUS_DOT[g.status] || "var(--ink-soft)";
+  titleRow.appendChild(dot);
+
+  const titleText = document.createElement("div"); titleText.className = "kcard-title-text";
+  if(g.title){ titleText.textContent = g.title; }
+  else { titleText.textContent = "Objetivo sin título"; titleText.style.color = "var(--ink-soft)"; titleText.style.fontStyle="italic"; }
+  titleRow.appendChild(titleText);
+
+  const chev = document.createElement("span"); chev.className = "kcard-chevron"; chev.textContent = "⌄";
+  titleRow.appendChild(chev);
+  head.appendChild(titleRow);
+
+  if(g.deadline){
+    const due = document.createElement("div"); due.className = "kcard-due"; due.textContent = "Plazo: "+fmtDeadlineShort(g.deadline);
+    head.appendChild(due);
+  }
+  card.appendChild(head);
+
+  const prog = document.createElement("div"); prog.className = "kcard-progress";
+  const progFill = document.createElement("div"); progFill.className = "kcard-progress-fill";
+  progFill.style.width = (Number(g.progress)||0)+"%";
+  prog.appendChild(progFill);
+  card.appendChild(prog);
+
+  const body = document.createElement("div"); body.className = "kcard-body";
+
+  function field(label, el){
+    const w = document.createElement("div");
+    const l = document.createElement("div");
+    l.style.cssText = "font-size:11px;color:var(--ink-soft);margin-bottom:5px;text-transform:uppercase;letter-spacing:.03em;";
+    l.textContent = label;
+    w.appendChild(l); w.appendChild(el);
+    return w;
+  }
+
+  const titleInp = makeTextInput(g.title, v=>{g.title=v; titleText.textContent = v || "Objetivo sin título"; save();}, "text", "Título del objetivo...");
+  titleInp.style.cssText = "font-weight:600; font-size:14px;";
+  titleInp.onclick = (e)=> e.stopPropagation();
+  body.appendChild(field("Título", titleInp));
+
+  const catSel = makeSelect(g.category, GOAL_CATEGORIES, v=>{g.category=v; save();});
+  body.appendChild(field("Categoría", catSel));
+
+  const dInp = makeTextInput(g.deadline, v=>{g.deadline=v; save(); renderAll();}, "date");
+  body.appendChild(field("Plazo", dInp));
+
+  body.appendChild(field("Estado", makeGoalStatusSelect(g.status, v=>{ expandedGoalIds.add(g.id); g.status=v; save(); renderAll(); })));
+
+  body.appendChild(field("Progreso", makeSegmentedProgress(g.progress, v=>{ g.progress=v; save(); renderAll(); })));
+
+  const notes = document.createElement("textarea");
+  notes.placeholder = "Notas, desglose, próximos pasos...";
+  notes.style.minHeight = "70px";
+  notes.value = g.notes||"";
+  notes.oninput = ()=>{ g.notes=notes.value; save(); };
+  body.appendChild(field("Notas", notes));
+
+  const actions = document.createElement("div");
+  actions.style.cssText = "display:flex;justify-content:space-between;align-items:center;padding-top:2px;";
+  const moveWrap = document.createElement("div"); moveWrap.style.cssText="display:flex;gap:6px;";
+  const upBtn = document.createElement("button"); upBtn.className="iconbtn"; upBtn.textContent="↑"; upBtn.title="Subir prioridad";
+  upBtn.onclick = (e)=>{ e.stopPropagation(); moveGoalWithinStatus(g,-1); };
+  const downBtn = document.createElement("button"); downBtn.className="iconbtn"; downBtn.textContent="↓"; downBtn.title="Bajar prioridad";
+  downBtn.onclick = (e)=>{ e.stopPropagation(); moveGoalWithinStatus(g,1); };
+  moveWrap.appendChild(upBtn); moveWrap.appendChild(downBtn);
+  actions.appendChild(moveWrap);
+  const del = document.createElement("button"); del.className="iconbtn"; del.textContent="✕ Eliminar";
+  del.style.width = "auto"; del.style.padding = "6px 10px";
+  del.onclick = (e)=>{ e.stopPropagation(); softDelete("goals", g); };
+  actions.appendChild(del);
+  body.appendChild(actions);
+
+  card.appendChild(body);
+  return card;
+}
+
+function renderObjetivos(container){
+  const panel = document.createElement("div");
+  panel.className = "panel";
+  const head = document.createElement("div");
+  head.style.cssText="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;";
+  head.innerHTML = `<h2 style="margin:0;">Mis objetivos</h2>`;
+  const addBtn = document.createElement("button");
+  addBtn.className="btn small"; addBtn.textContent="+ Nuevo objetivo";
+  addBtn.onclick = ()=>{
+    const g = {id:uid(), title:"", category:"Personal", deadline:"", progress:0, status:"No iniciado", notes:""};
+    DATA.goals.unshift(g);
+    expandedGoalIds.add(g.id);
+    save(); renderAll();
+  };
+  head.appendChild(addBtn);
+  panel.appendChild(head);
+
+  if(DATA.goals.length===0){
+    const e = document.createElement("div"); e.className="empty"; e.textContent="Todavía no cargaste objetivos.";
+    panel.appendChild(e);
+  } else {
+    const board = document.createElement("div"); board.className = "kanban";
+    GOAL_COLUMNS.forEach(status=>{
+      const col = document.createElement("div"); col.className = "kanban-col";
+      col.ondragover = (e)=> e.preventDefault();
+      col.ondrop = (e)=>{ e.preventDefault(); const id = e.dataTransfer.getData("text/plain"); moveGoalToStatus(id, status); };
+
+      const colHead = document.createElement("div"); colHead.className = "kanban-col-head";
+      const items = DATA.goals.filter(g=>g.status===status);
+      colHead.innerHTML = `<span class="kdot" style="background:${GOAL_STATUS_DOT[status]}"></span><span class="kname">${status}</span><span class="kcount">${items.length}</span>`;
+      col.appendChild(colHead);
+
+      if(items.length===0){
+        const empty = document.createElement("div"); empty.className="kanban-empty"; empty.textContent="Arrastrá tarjetas acá";
+        col.appendChild(empty);
+      } else {
+        items.forEach(g=> col.appendChild(renderGoalCard(g)));
+      }
+      board.appendChild(col);
+    });
+    panel.appendChild(board);
+  }
+  container.appendChild(panel);
+}
+
+/* ---------- FINANZAS ---------- */
+let finPeriod = "mensual";
+let finCurrency = null;
+let financeCharts = [];
+
+function destroyFinanceCharts(){
+  financeCharts.forEach(c=>{ try{ c.destroy(); }catch(e){} });
+  financeCharts = [];
+}
+
+function finPeriodFilter(f){
+  if(!f.date) return finPeriod==="todo";
+  const d = new Date(f.date+"T00:00:00");
+  if(isNaN(d)) return finPeriod==="todo";
+  const now = new Date();
+  if(finPeriod==="diario"){
+    return d.toDateString()===now.toDateString();
+  }
+  if(finPeriod==="mensual"){
+    return d.getFullYear()===now.getFullYear() && d.getMonth()===now.getMonth();
+  }
+  if(finPeriod==="anual"){
+    return d.getFullYear()===now.getFullYear();
+  }
+  return true; // todo
+}
+
+const CHART_COLORS = ["#22c55e","#34d399","#0ea5e9","#fbbf24","#94a3b8","#f97316","#2dd4bf","#a3e635","#f43f5e","#64748b"];
+
+const INCOME_CATEGORIES = ["Producción","Cliente","Asesoría","Otro"];
+const EXPENSE_CATEGORIES = ["Comida","Auto","Mascota","Servicios","Salidas","Alquiler","Varios","Salud","Equipamiento","Suscripciones","Otro"];
+function makeCategorySelect(type, value, onChange){
+  const base = type==="Ingreso" ? INCOME_CATEGORIES : EXPENSE_CATEGORIES;
+  const list = (value && !base.includes(value)) ? [value, ...base] : base.slice();
+  const sel = document.createElement("select");
+  sel.className = "cell-input";
+  if(!value){
+    const op0 = document.createElement("option");
+    op0.value = ""; op0.textContent = "— Elegir —"; op0.selected = true;
+    sel.appendChild(op0);
+  }
+  list.forEach(o=>{
+    const op = document.createElement("option");
+    op.value = o; op.textContent = o;
+    if(o===value) op.selected = true;
+    sel.appendChild(op);
+  });
+  sel.onchange = ()=>onChange(sel.value);
+  return sel;
+}
+
+const TYPE_COLOR = { "Ingreso":"green", "Gasto":"red" };
+function makeTypeSelect(value, onChange){
+  const sel = document.createElement("select");
+  const cls = TYPE_COLOR[value] || "green";
+  sel.className = "cell-input status-select status-"+cls;
+  ["Ingreso","Gasto"].forEach(o=>{
+    const op = document.createElement("option");
+    op.value = o; op.textContent = o;
+    if(o===value) op.selected = true;
+    sel.appendChild(op);
+  });
+  sel.onchange = ()=>{
+    const newCls = TYPE_COLOR[sel.value] || "green";
+    sel.className = "cell-input status-select status-"+newCls;
+    onChange(sel.value);
+  };
+  return sel;
+}
+
+function byCategory(items){
+  const map = {};
+  items.forEach(f=>{
+    const cat = (f.category||"Sin categoría").trim() || "Sin categoría";
+    map[cat] = (map[cat]||0) + (Number(f.amount)||0);
+  });
+  return map;
+}
+
+// Renderiza KPIs + resumen por estado + gráficos para una moneda puntual
+function renderCurrencyBlock(container, currency, items){
+  const sym = CURRENCY_SYMBOL[currency] ?? "";
+  const income = items.filter(f=>f.type==="Ingreso").reduce((a,b)=>a+(Number(b.amount)||0),0);
+  const expense = items.filter(f=>f.type==="Gasto").reduce((a,b)=>a+(Number(b.amount)||0),0);
+  const balance = income-expense;
+
+  const kpis = document.createElement("div");
+  kpis.className="kpis";
+  [["Ingresos",sym+fmtMoney(income),"green"],["Gastos",sym+fmtMoney(expense),"red"],["Balance",sym+fmtMoney(balance), balance>=0?"green":"red"]].forEach(([lbl,val,color])=>{
+    const k = document.createElement("div"); k.className="kpi";
+    k.innerHTML = `<div class="lbl">${lbl} <span class="currency-pill">${currency}</span></div><div class="val" style="color:var(--${color})">${val}</div>`;
+    kpis.appendChild(k);
+  });
+  container.appendChild(kpis);
+
+  // resumen por estado (presupuestos confirmados / a confirmar / no confirmados)
+  const statusSummary = document.createElement("div"); statusSummary.className="status-summary";
+  ["Confirmado","A confirmar","No confirmado"].forEach(st=>{
+    const stItems = items.filter(f=>(f.status||"Confirmado")===st);
+    const total = stItems.reduce((a,b)=>a+(Number(b.amount)||0),0);
+    const cls = STATUS_COLOR[st];
+    const chip = document.createElement("div"); chip.className="status-chip";
+    chip.innerHTML = `
+      <span class="dot ${cls}"></span>
+      <div class="txt">
+        <div class="lbl2">${st} · ${stItems.length} mov.</div>
+        <div class="val2">${sym}${fmtMoney(total)}</div>
+      </div>`;
+    statusSummary.appendChild(chip);
+  });
+  container.appendChild(statusSummary);
+
+  // gráficos de torta
+  const chartPanel = document.createElement("div"); chartPanel.className="panel";
+  chartPanel.innerHTML = `<h2 style="margin:0 0 12px;">Por categoría — ${({diario:"hoy",mensual:"este mes",anual:"este año",todo:"todo el período"})[finPeriod]}</h2>`;
+  const grid = document.createElement("div"); grid.className="chart-grid";
+
+  const expTitle = document.createElement("div"); expTitle.style.cssText="font-size:12px;color:var(--ink-soft);margin-bottom:6px;"; expTitle.textContent="Gastos";
+  const expCanvasWrap = document.createElement("div"); expCanvasWrap.style.height="200px"; expCanvasWrap.style.position="relative";
+  const expCanvas = document.createElement("canvas");
+  expCanvasWrap.appendChild(expCanvas);
+  const expCol = document.createElement("div"); expCol.appendChild(expTitle); expCol.appendChild(expCanvasWrap);
+
+  const incTitle = document.createElement("div"); incTitle.style.cssText="font-size:12px;color:var(--ink-soft);margin-bottom:6px;"; incTitle.textContent="Ingresos";
+  const incCanvasWrap = document.createElement("div"); incCanvasWrap.style.height="200px"; incCanvasWrap.style.position="relative";
+  const incCanvas = document.createElement("canvas");
+  incCanvasWrap.appendChild(incCanvas);
+  const incCol = document.createElement("div"); incCol.appendChild(incTitle); incCol.appendChild(incCanvasWrap);
+
+  grid.appendChild(expCol);
+  grid.appendChild(incCol);
+  chartPanel.appendChild(grid);
+  container.appendChild(chartPanel);
+
+  const expMap = byCategory(items.filter(f=>f.type==="Gasto"));
+  const incMap = byCategory(items.filter(f=>f.type==="Ingreso"));
+
+  if(Object.keys(expMap).length===0){
+    const e=document.createElement("div"); e.className="chart-empty"; e.textContent="Sin gastos en este período";
+    expCanvasWrap.appendChild(e);
+  } else if(window.Chart){
+    financeCharts.push(new Chart(expCanvas.getContext("2d"), {
+      type:"doughnut",
+      data:{ labels:Object.keys(expMap), datasets:[{ data:Object.values(expMap), backgroundColor:CHART_COLORS, borderColor:"#131318", borderWidth:2 }] },
+      options:{ responsive:true, maintainAspectRatio:false, plugins:{ legend:{ position:"bottom", labels:{ color:"#92929d", font:{size:10.5}, boxWidth:10, padding:8 } } } }
+    }));
+  }
+
+  if(Object.keys(incMap).length===0){
+    const e=document.createElement("div"); e.className="chart-empty"; e.textContent="Sin ingresos en este período";
+    incCanvasWrap.appendChild(e);
+  } else if(window.Chart){
+    financeCharts.push(new Chart(incCanvas.getContext("2d"), {
+      type:"doughnut",
+      data:{ labels:Object.keys(incMap), datasets:[{ data:Object.values(incMap), backgroundColor:CHART_COLORS, borderColor:"#131318", borderWidth:2 }] },
+      options:{ responsive:true, maintainAspectRatio:false, plugins:{ legend:{ position:"bottom", labels:{ color:"#92929d", font:{size:10.5}, boxWidth:10, padding:8 } } } }
+    }));
+  }
+}
+
+// Renderiza un panel con la tabla de movimientos de un solo tipo (Ingreso o Gasto)
+let finExpandedMonths = {};
+
+function groupFinByMonth(items){
+  const groups = {};
+  items.forEach(f=>{
+    let key = "Sin fecha";
+    if(f.date){
+      const d = new Date(f.date+"T00:00:00");
+      if(!isNaN(d)) key = d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0");
+    }
+    (groups[key] ||= []).push(f);
+  });
+  return groups;
+}
+function finMonthLabel(key){
+  if(key==="Sin fecha") return "Sin fecha";
+  const [y,m] = key.split("-");
+  const txt = new Date(Number(y), Number(m)-1, 1).toLocaleDateString("es-AR",{month:"long",year:"numeric"});
+  return txt.charAt(0).toUpperCase()+txt.slice(1);
+}
+function finMonthSubtotal(items){
+  const byCur = {};
+  items.forEach(f=>{
+    const cur = f.currency||"ARS";
+    byCur[cur] = (byCur[cur]||0) + (Number(f.amount)||0);
+  });
+  return Object.entries(byCur).map(([cur,amt])=>`${CURRENCY_SYMBOL[cur]??""}${fmtMoney(amt)} ${cur}`).join(" · ") || "—";
+}
+
+function makeAccountSelect(value, onChange){
+  const sel = document.createElement("select");
+  sel.className = "cell-input";
+  const noneOp = document.createElement("option"); noneOp.value=""; noneOp.textContent="Sin cuenta";
+  sel.appendChild(noneOp);
+  (DATA.accounts||[]).forEach(a=>{
+    const op = document.createElement("option"); op.value=a.id; op.textContent=a.name||"(sin nombre)";
+    if(a.id===value) op.selected = true;
+    sel.appendChild(op);
+  });
+  sel.onchange = ()=>onChange(sel.value);
+  return sel;
+}
+
+function renderMovTable(container, items){
+  const table = document.createElement("table");
+  table.className = "rtable";
+  table.innerHTML = `<thead><tr><th>Fecha</th><th>Descripción</th><th>Cuenta</th><th>Categoría</th><th>Estado</th><th>Moneda</th><th style="text-align:right;">Monto</th><th></th></tr></thead>`;
+  const tbody = document.createElement("tbody");
+  items.forEach(f=>{
+    if(f.currency===undefined) f.currency = "ARS";
+    if(f.status===undefined) f.status = "Confirmado";
+    if(f.account===undefined) f.account = "";
+    const tr = document.createElement("tr");
+    tr.appendChild(td("Fecha", makeTextInput(f.date, v=>{f.date=v; save(); debouncedRenderAll();}, "date", "", f.id+"-date")));
+    const descInp = makeTextInput(f.desc, v=>{f.desc=v; save();}, "text", "Descripción", f.id+"-desc"); descInp.style.minWidth="150px";
+    tr.appendChild(td("Descripción", descInp));
+    tr.appendChild(td("Cuenta", makeAccountSelect(f.account, v=>{f.account=v; save(); renderAll();})));
+    const catSel = makeCategorySelect(f.type, f.category, v=>{f.category=v; save(); renderAll();}); catSel.style.minWidth="130px";
+    tr.appendChild(td("Categoría", catSel));
+    tr.appendChild(td("Estado", makeStatusSelect(f.status, v=>{f.status=v; save(); renderAll();})));
+    tr.appendChild(td("Moneda", makeSelect(f.currency, CURRENCIES, v=>{f.currency=v; save(); renderAll();})));
+    const amtInp = makeTextInput(f.amount, v=>{f.amount=v; save(); debouncedRenderAll();}, "text", "0.00", f.id+"-amount");
+    amtInp.style.textAlign="right";
+    amtInp.setAttribute("inputmode","decimal");
+    const tdAmt = td("Monto", amtInp); tdAmt.style.textAlign="right";
+    tr.appendChild(tdAmt);
+    const del = document.createElement("button"); del.className="iconbtn"; del.textContent="✕";
+    del.onclick=()=>{ softDelete("finances", f); };
+    tr.appendChild(td(null, del));
+    tbody.appendChild(tr);
+  });
+  table.appendChild(tbody);
+  container.appendChild(table);
+}
+
+function renderMovementsPanel(container, fin, type, color){
+  const label = type==="Ingreso" ? "Ingresos" : "Gastos";
+  const items = fin.filter(f=>f.type===type);
+
+  const panel = document.createElement("div"); panel.className="panel";
+  const head = document.createElement("div");
+  head.style.cssText="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;";
+  head.innerHTML=`<h2 style="margin:0; color:var(--${color});">${label}</h2>`;
+  const addBtn = document.createElement("button");
+  addBtn.className="btn small"; addBtn.textContent="+ Nuevo "+(type==="Ingreso"?"ingreso":"gasto");
+  addBtn.onclick=()=>{
+    DATA.finances.unshift({id:uid(), date:todayISO(), desc:"", type:type, category:"", currency:(finCurrency&&finCurrency!=="Todo")?finCurrency:"ARS", amount:"", status:"Confirmado", account:""});
+    save(); renderAll();
+  };
+  head.appendChild(addBtn);
+  panel.appendChild(head);
+
+  if(items.length===0){
+    const e=document.createElement("div"); e.className="empty"; e.textContent=`No hay ${label.toLowerCase()} cargados.`;
+    panel.appendChild(e);
+  } else {
+    const grouped = groupFinByMonth(items);
+    const sortedKeys = Object.keys(grouped).sort((a,b)=>{
+      if(a==="Sin fecha") return 1;
+      if(b==="Sin fecha") return -1;
+      return b.localeCompare(a);
+    });
+
+    sortedKeys.forEach((key, idx)=>{
+      const monthItems = grouped[key];
+      const stateKey = type+"-"+key;
+      if(finExpandedMonths[stateKey]===undefined) finExpandedMonths[stateKey] = (idx===0);
+      const expanded = finExpandedMonths[stateKey];
+
+      const monthWrap = document.createElement("div");
+      monthWrap.style.cssText = "border:1px solid var(--line); border-radius:10px; margin-bottom:10px; overflow:hidden;";
+
+      const mHead = document.createElement("button");
+      mHead.style.cssText = "width:100%; display:flex; justify-content:space-between; align-items:center; gap:10px; padding:10px 14px; background:rgba(255,255,255,.03); border:none; cursor:pointer; font-family:inherit; color:var(--ink); text-align:left;";
+      mHead.innerHTML = `
+        <span style="display:flex;align-items:center;gap:8px; min-width:0;">
+          <span style="display:inline-block; transition:transform .15s; transform:rotate(${expanded?90:0}deg); color:var(--ink-soft); font-size:11px; flex-shrink:0;">▶</span>
+          <strong style="font-size:13.5px;">${label} · ${finMonthLabel(key)}</strong>
+          <span style="font-size:11px; color:var(--ink-soft); white-space:nowrap;">${monthItems.length} mov.</span>
+        </span>
+        <span style="font-size:12.5px; font-weight:700; color:var(--${color}); white-space:nowrap;">${finMonthSubtotal(monthItems)}</span>
+      `;
+      mHead.onclick = ()=>{ finExpandedMonths[stateKey] = !finExpandedMonths[stateKey]; renderAll(); };
+      monthWrap.appendChild(mHead);
+
+      if(expanded){
+        const body = document.createElement("div");
+        body.style.cssText = "padding:4px 10px 8px; overflow-x:auto;";
+        renderMovTable(body, monthItems);
+        monthWrap.appendChild(body);
+      }
+      panel.appendChild(monthWrap);
+    });
+  }
+  container.appendChild(panel);
+}
+
+// Tarjetas tipo dashboard para la vista mobile: mismos datos que el resto de
+// la pestaña, solo presentados como resumen rápido. La tabla completa de
+// movimientos sigue exactamente igual, debajo.
+function renderMobileFinanzasSummary(container, fin, currenciesPresent){
+  const tag = document.createElement("div"); tag.className="section-tag"; tag.textContent="Resumen rápido";
+  const wrap = document.createElement("div"); wrap.className="mobile-summary"; wrap.appendChild(tag);
+  container.appendChild(wrap);
+
+  const cur = (finCurrency && finCurrency!=="Todo") ? finCurrency : (currenciesPresent[0] || "ARS");
+  const sym = CURRENCY_SYMBOL[cur] ?? "";
+  const periodItemsCur = fin.filter(finPeriodFilter).filter(f=>(f.currency||"ARS")===cur);
+  const income = periodItemsCur.filter(f=>f.type==="Ingreso").reduce((a,b)=>a+(Number(b.amount)||0),0);
+  const expense = periodItemsCur.filter(f=>f.type==="Gasto").reduce((a,b)=>a+(Number(b.amount)||0),0);
+  const balance = income-expense;
+
+  const cards = document.createElement("div"); cards.className="kpis";
+  [["Ingresos",sym+fmtMoney(income),"green"],["Egresos",sym+fmtMoney(expense),"red"],["Saldo neto",sym+fmtMoney(balance), balance>=0?"green":"red"]].forEach(([lbl,val,color])=>{
+    const k=document.createElement("div"); k.className="kpi";
+    k.innerHTML = `<div class="lbl">${lbl} <span class="currency-pill">${cur}</span></div><div class="val" style="color:var(--${color})">${val}</div>`;
+    cards.appendChild(k);
+  });
+  container.appendChild(cards);
+
+  // evolución mensual (últimos 6 meses con datos) — ingresos vs egresos
+  const monthly = {};
+  fin.filter(f=>(f.currency||"ARS")===cur).forEach(f=>{
+    if(!f.date) return;
+    const d = new Date(f.date+"T00:00:00");
+    if(isNaN(d)) return;
+    const key = d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0");
+    if(!monthly[key]) monthly[key] = {ingreso:0, gasto:0};
+    monthly[key][f.type==="Ingreso"?"ingreso":"gasto"] += Number(f.amount)||0;
+  });
+  const sortedKeys = Object.keys(monthly).sort().slice(-6);
+  if(sortedKeys.length){
+    const panel = document.createElement("div"); panel.className="panel";
+    panel.innerHTML = `<h2 style="margin:0 0 12px;">Evolución mensual <span class="currency-pill">${cur}</span></h2>`;
+    const wrap2 = document.createElement("div"); wrap2.style.cssText="height:200px;position:relative;";
+    const canvas = document.createElement("canvas"); wrap2.appendChild(canvas);
+    panel.appendChild(wrap2);
+    container.appendChild(panel);
+    if(window.Chart){
+      financeCharts.push(new Chart(canvas.getContext("2d"), {
+        type:"bar",
+        data:{
+          labels: sortedKeys.map(k=>finMonthLabel(k).split(" ")[0].slice(0,3)),
+          datasets:[
+            {label:"Ingresos", data:sortedKeys.map(k=>monthly[k].ingreso), backgroundColor:"#3ddc97", borderRadius:4},
+            {label:"Egresos", data:sortedKeys.map(k=>monthly[k].gasto), backgroundColor:"#fb7185", borderRadius:4}
+          ]
+        },
+        options:{ responsive:true, maintainAspectRatio:false,
+          plugins:{ legend:{ position:"bottom", labels:{color:"#92929d", font:{size:10.5}, boxWidth:10} } },
+          scales:{x:CHART_AXIS_OPTS,y:CHART_AXIS_OPTS} }
+      }));
+    }
+  }
+
+  if(currenciesPresent.length>1){
+    const byCurPanel = document.createElement("div"); byCurPanel.className="panel";
+    byCurPanel.innerHTML = `<h2 style="margin:0 0 6px;">Por moneda</h2>`;
+    currenciesPresent.forEach(c2=>{
+      const items2 = fin.filter(f=>(f.currency||"ARS")===c2);
+      const inc2 = items2.filter(f=>f.type==="Ingreso").reduce((a,b)=>a+(Number(b.amount)||0),0);
+      const exp2 = items2.filter(f=>f.type==="Gasto").reduce((a,b)=>a+(Number(b.amount)||0),0);
+      const bal2 = inc2-exp2;
+      const row = document.createElement("div"); row.className="mini-card-row";
+      row.innerHTML = `<div class="title">${c2}</div><div class="meta" style="font-weight:700;color:${bal2>=0?"var(--green)":"var(--red)"}">${CURRENCY_SYMBOL[c2]??""}${fmtMoney(bal2)}</div>`;
+      byCurPanel.appendChild(row);
+    });
+    container.appendChild(byCurPanel);
+  }
+}
+
+// Valor actual de la cartera de Inversiones (misma cuenta que "Valor actual"
+// en la tabla de Posiciones: cantidad x precio actual, o costo si todavía no
+// cargaste un precio actual) — sirve para que la cuenta "Crypto" de Liquidez
+// se mueva sola con la cotización, en vez de quedar en un número fijo.
+function computeInvestmentsCurrentValue(){
+  let total = 0;
+  (DATA.investments||[]).forEach(i=>{
+    const qty = Number(i.qty)||0;
+    const hasCurrent = i.currentPrice!==undefined && i.currentPrice!=="";
+    const price = hasCurrent ? Number(i.currentPrice) : (Number(i.unitCost)||0);
+    total += qty*price;
+  });
+  return total;
+}
+
+// Disponible de una cuenta:
+// - si está "vinculada a Inversiones" (acc.linked), el disponible ES el valor
+//   actual de la cartera — sube y baja solo con la cotización.
+// - si no, es el saldo base (lo que el usuario cargó a mano al crearla) más
+//   todos los ingresos vinculados menos todos los gastos vinculados. Se
+//   recalcula siempre a partir de los movimientos, así nunca se desincroniza
+//   aunque se edite un monto o se borre un movimiento.
+function computeAccountBalance(acc){
+  if(acc.linked){
+    return computeInvestmentsCurrentValue();
+  }
+  let bal = Number(acc.opening)||0;
+  DATA.finances.forEach(f=>{
+    if(f.account && f.account===acc.id){
+      const amt = Number(f.amount)||0;
+      bal += (f.type==="Ingreso" ? amt : -amt);
+    }
+  });
+  return bal;
+}
+
+function renderLiquidezPanel(container){
+  if(!DATA.accounts) DATA.accounts = [];
+  const panel = document.createElement("div"); panel.className="panel";
+  const head = document.createElement("div");
+  head.style.cssText="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;";
+  head.innerHTML = `<div><h2 style="margin:0;">Liquidez</h2><p style="margin:3px 0 0;font-size:12px;color:var(--ink-soft);">Cuánto dinero tenés disponible y dónde. Cada gasto o ingreso que le asignes a una cuenta se descuenta o suma acá solo.</p></div>`;
+  const addBtn = document.createElement("button"); addBtn.className="btn small"; addBtn.textContent="+ Cuenta";
+  addBtn.onclick = ()=>{
+    DATA.accounts.push({id:uid(), name:"", currency:"ARS", opening:0});
+    save(); renderAll();
+  };
+  head.appendChild(addBtn);
+  panel.appendChild(head);
+
+  if(DATA.accounts.length===0){
+    const e=document.createElement("div"); e.className="empty"; e.textContent="Todavía no cargaste cuentas.";
+    panel.appendChild(e);
+  } else {
+    const grid = document.createElement("div"); grid.className = "accounts-grid";
+    DATA.accounts.forEach(acc=>{
+      if(acc.opening===undefined) acc.opening = 0;
+      if(acc.currency===undefined) acc.currency = "ARS";
+      const bal = computeAccountBalance(acc);
+      const card = document.createElement("div"); card.className = "account-card";
+
+      const top = document.createElement("div"); top.style.cssText="display:flex;align-items:center;gap:8px;";
+      const nameInp = makeTextInput(acc.name, v=>{acc.name=v; save();}, "text", "Nombre de la cuenta");
+      nameInp.style.cssText = "flex:1;font-weight:700;font-size:14.5px;border:none;background:none;min-width:0;";
+      top.appendChild(nameInp);
+      const del = document.createElement("button"); del.className="iconbtn"; del.textContent="✕"; del.style.flexShrink="0";
+      del.onclick = ()=>{ softDelete("accounts", acc); };
+      top.appendChild(del);
+      card.appendChild(top);
+
+      const balEl = document.createElement("div"); balEl.className = "account-balance";
+      balEl.style.color = bal<0 ? "var(--red)" : "var(--ink)";
+      balEl.textContent = (CURRENCY_SYMBOL[acc.currency]??"") + " " + fmtMoney(bal);
+      card.appendChild(balEl);
+
+      const curRow = document.createElement("div"); curRow.style.cssText="margin-bottom:10px;";
+      const curLbl = document.createElement("div"); curLbl.style.cssText="font-size:10.5px;color:var(--ink-soft);margin-bottom:4px;"; curLbl.textContent="Moneda";
+      const curSel = makeSelect(acc.currency, CURRENCIES, v=>{acc.currency=v; save(); renderAll();});
+      curSel.style.cssText = "width:auto;min-width:90px;";
+      curRow.appendChild(curLbl); curRow.appendChild(curSel);
+      card.appendChild(curRow);
+
+      if(acc.linked){
+        const note = document.createElement("div");
+        note.style.cssText = "font-size:11px;color:var(--ink-soft); line-height:1.4;";
+        note.textContent = "Valor tomado de Inversiones · se actualiza solo";
+        card.appendChild(note);
+      } else {
+        const openWrap = document.createElement("div");
+        const openLbl = document.createElement("div"); openLbl.style.cssText="font-size:10.5px;color:var(--ink-soft);margin-bottom:4px;"; openLbl.textContent="Saldo base";
+        const openInp = makeTextInput(acc.opening, v=>{acc.opening=v; save(); debouncedRenderAll();}, "text", "0", acc.id+"-opening");
+        openInp.setAttribute("inputmode","decimal"); openInp.style.cssText = "width:100%; text-align:right; font-size:14px;";
+        openWrap.appendChild(openLbl); openWrap.appendChild(openInp);
+        card.appendChild(openWrap);
+      }
+
+      const linkRow = document.createElement("label");
+      linkRow.style.cssText = "display:flex;align-items:center;gap:6px;margin-top:9px;font-size:10.5px;color:var(--ink-soft);cursor:pointer;";
+      const linkChk = document.createElement("input"); linkChk.type="checkbox"; linkChk.checked = !!acc.linked;
+      linkChk.style.cssText = "width:14px;height:14px;accent-color:var(--accent);";
+      linkChk.onchange = ()=>{ acc.linked = linkChk.checked; save(); renderAll(); };
+      linkRow.appendChild(linkChk);
+      linkRow.appendChild(document.createTextNode("Vincular a Inversiones (valor automático)"));
+      card.appendChild(linkRow);
+
+      grid.appendChild(card);
+    });
+    panel.appendChild(grid);
+
+    // subtotales por moneda, para no inventar una conversión falsa entre ARS/USD
+    const byCur = {};
+    DATA.accounts.forEach(acc=>{ byCur[acc.currency] = (byCur[acc.currency]||0) + computeAccountBalance(acc); });
+    const totals = document.createElement("div"); totals.className = "account-totals";
+    totals.textContent = "Total disponible: " + Object.entries(byCur).map(([cur,amt])=>`${CURRENCY_SYMBOL[cur]??""}${fmtMoney(amt)} ${cur}`).join("  ·  ");
+    panel.appendChild(totals);
+  }
+  container.appendChild(panel);
+}
+
+function renderFinanzas(container){
+  const fin = DATA.finances;
+  const currenciesPresent = Array.from(new Set(fin.map(f=>f.currency || "ARS")));
+  if(currenciesPresent.length===0) currenciesPresent.push("ARS");
+  if(!finCurrency || (finCurrency!=="Todo" && !currenciesPresent.includes(finCurrency))) finCurrency = currenciesPresent[0];
+
+  destroyFinanceCharts();
+  if(isMobileView()) renderMobileFinanzasSummary(container, fin, currenciesPresent);
+
+  const periodItems = fin.filter(finPeriodFilter);
+
+  // --- controls row: period + currency ---
+  const controls = document.createElement("div");
+  controls.style.cssText = "display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:14px;";
+
+  const seg = document.createElement("div"); seg.className="seg";
+  [["diario","Diario"],["mensual","Mensual"],["anual","Anual"],["todo","Todo"]].forEach(([key,lbl])=>{
+    const b = document.createElement("button");
+    b.textContent = lbl;
+    b.className = key===finPeriod ? "active" : "";
+    b.onclick = ()=>{ finPeriod=key; renderAll(); };
+    seg.appendChild(b);
+  });
+  controls.appendChild(seg);
+
+  if(currenciesPresent.length>1){
+    const curSel = makeSelect(finCurrency, [...currenciesPresent,"Todo"], v=>{ finCurrency=v; renderAll(); });
+    curSel.style.maxWidth="120px";
+    controls.appendChild(curSel);
+  }
+  container.appendChild(controls);
+
+  if(finCurrency==="Todo" && currenciesPresent.length>1){
+    currenciesPresent.forEach(cur=>{
+      const heading = document.createElement("div");
+      heading.style.cssText="display:flex;align-items:center;gap:8px;margin:4px 0 8px;";
+      heading.innerHTML = `<h2 style="margin:0;">${cur}</h2>`;
+      container.appendChild(heading);
+      const curItems = periodItems.filter(f=>(f.currency||"ARS")===cur);
+      renderCurrencyBlock(container, cur, curItems);
+    });
+  } else {
+    const curItems = periodItems.filter(f=>(f.currency||"ARS")===finCurrency);
+    renderCurrencyBlock(container, finCurrency, curItems);
+  }
+
+  renderLiquidezPanel(container);
+
+  // --- movimientos: ingresos y gastos separados ---
+  renderMovementsPanel(container, fin, "Ingreso", "green");
+  renderMovementsPanel(container, fin, "Gasto", "red");
+}
+
+/* ---------- INVERSIONES ---------- */
+const INVESTMENT_TYPES = ["Crypto","USD","Acción","Otro"];
+const INVESTMENT_CURRENCIES = ["USDT","ARS","USD","EUR"];
+let invCharts = [];
+function destroyInvCharts(){ invCharts.forEach(c=>{ try{c.destroy();}catch(e){} }); invCharts=[]; }
+
+const OPERATION_COLOR = { "Compra":"green", "Venta":"red" };
+function makeOperationSelect(value, onChange){
+  const sel = document.createElement("select");
+  const cls = OPERATION_COLOR[value] || "green";
+  sel.className = "cell-input status-select status-"+cls;
+  ["Compra","Venta"].forEach(o=>{
+    const op = document.createElement("option");
+    op.value = o; op.textContent = o;
+    if(o===value) op.selected = true;
+    sel.appendChild(op);
+  });
+  sel.onchange = ()=>{
+    sel.className = "cell-input status-select status-"+(OPERATION_COLOR[sel.value]||"green");
+    onChange(sel.value);
+  };
+  return sel;
+}
+
+function labeledControl(label, el){
+  const wrap = document.createElement("div"); wrap.style.cssText="min-width:120px;";
+  const lab = document.createElement("div"); lab.style.cssText="font-size:11px;color:var(--ink-soft);margin-bottom:3px;"; lab.textContent=label;
+  wrap.appendChild(lab); wrap.appendChild(el);
+  return wrap;
+}
+
+function chartColumn(title){
+  const title_el = document.createElement("div"); title_el.style.cssText="font-size:12px;color:var(--ink-soft);margin-bottom:6px;"; title_el.textContent=title;
+  const canvasWrap = document.createElement("div"); canvasWrap.style.cssText="height:200px;position:relative;";
+  const canvas = document.createElement("canvas");
+  canvasWrap.appendChild(canvas);
+  const wrap = document.createElement("div"); wrap.appendChild(title_el); wrap.appendChild(canvasWrap);
+  return {
+    wrap, canvas,
+    empty(){ const e=document.createElement("div"); e.className="chart-empty"; e.textContent="Sin datos"; canvasWrap.appendChild(e); }
+  };
+}
+
+let invFilterAsset = "Todos";
+let invFilterPlatform = "Todas";
+let invFilterOp = "Todas";
+let invFilterFrom = "";
+let invFilterTo = "";
+let invFilterMinAmount = "";
+let invExpandedAssets = {};
+
+const ASSET_COLOR_CACHE = {};
+function colorForAsset(asset){
+  if(ASSET_COLOR_CACHE[asset]) return ASSET_COLOR_CACHE[asset];
+  const idx = Object.keys(ASSET_COLOR_CACHE).length % CHART_COLORS.length;
+  const c = CHART_COLORS[idx];
+  ASSET_COLOR_CACHE[asset] = c;
+  return c;
+}
+
+// A partir del historial de compras/ventas de un activo, calcula la cantidad
+// neta en cartera y el precio promedio ponderado (costo base), reduciendo el
+// costo proporcionalmente cada vez que hay una venta.
+function computePositionFromPurchases(asset, purchases){
+  // Solo las operaciones de "Compra" cuentan para la posición actual: las
+  // ventas quedan registradas en el historial (y afectan el neto invertido en
+  // los gráficos de Gráficos/Movimientos), pero no restan de la cantidad en
+  // cartera — a pedido explícito, porque no todas las ventas cargadas
+  // corresponden a la tenencia vigente.
+  const ops = purchases.filter(p=>p.asset===asset && p.operation!=="Venta");
+  let qty=0, cost=0;
+  ops.forEach(p=>{
+    qty += Number(p.qty)||0;
+    cost += Number(p.amount)||0;
+  });
+  const unitCost = qty>0 ? cost/qty : 0;
+  return { qty: Math.round(qty*1e8)/1e8, unitCost: Math.round(unitCost*1e8)/1e8 };
+}
+
+// mantiene la tabla de Posiciones sincronizada con el historial de compras:
+// cada vez que se agrega, edita o borra una operación, la cantidad y el
+// precio promedio de esa cripto se recalculan solos (currentPrice, objetivos
+// de venta, plataforma y notas quedan intactos porque son datos manuales).
+function syncPositionsFromPurchases(){
+  const purchases = DATA.invPurchases || [];
+  const assetsWithPurchases = Array.from(new Set(purchases.map(p=>p.asset).filter(Boolean)));
+  assetsWithPurchases.forEach(asset=>{
+    const { qty, unitCost } = computePositionFromPurchases(asset, purchases);
+    let pos = DATA.investments.find(p=>p.asset===asset);
+    if(!pos){
+      pos = {id:uid(), date:todayISO(), type:"Crypto", asset, qty:0, unitCost:0, currency:"USDT", currentPrice:"", platform:"", sellTargets:"", notes:""};
+      DATA.investments.push(pos);
+    }
+    pos.qty = qty;
+    pos.unitCost = unitCost;
+  });
+}
+
+const crosshairPlugin = {
+  id: "crosshairLine",
+  afterDraw(chart){
+    const active = chart.tooltip && chart.tooltip.getActiveElements ? chart.tooltip.getActiveElements() : (chart.tooltip && chart.tooltip._active);
+    if(active && active.length){
+      const ctx = chart.ctx;
+      const x = active[0].element.x;
+      const yScale = chart.scales.y;
+      if(!yScale) return;
+      ctx.save();
+      ctx.beginPath();
+      ctx.moveTo(x, yScale.top);
+      ctx.lineTo(x, yScale.bottom);
+      ctx.lineWidth = 1;
+      ctx.strokeStyle = "rgba(255,255,255,.35)";
+      ctx.setLineDash([4,4]);
+      ctx.stroke();
+      ctx.restore();
+    }
+  }
+};
+
+function renderMobileInversionesSummary(container, inv){
+  const tag = document.createElement("div"); tag.className="section-tag"; tag.textContent="Resumen de inversiones";
+  const wrap = document.createElement("div"); wrap.className="mobile-summary"; wrap.appendChild(tag);
+  container.appendChild(wrap);
+
+  const invested = inv.reduce((a,b)=>a+((Number(b.qty)||0)*(Number(b.unitCost)||0)),0);
+  const currentValue = inv.reduce((a,b)=>{
+    const cp = b.currentPrice!==undefined && b.currentPrice!=="" ? Number(b.currentPrice) : Number(b.unitCost)||0;
+    return a + ((Number(b.qty)||0)*(cp||0));
+  },0);
+  const result = currentValue-invested;
+  const resultPct = invested ? (result/invested*100) : 0;
+  const mainCur = inv[0] ? (inv[0].currency||"USDT") : "USDT";
+
+  const cards = document.createElement("div"); cards.className="kpis";
+  [["Invertido","$"+fmtMoney(invested),"ink"],["Valor actual","$"+fmtMoney(currentValue),"ink"],["Resultado",(result>=0?"+":"")+"$"+fmtMoney(result)+" ("+(resultPct>=0?"+":"")+resultPct.toFixed(1)+"%)", result>=0?"green":"red"]].forEach(([lbl,val,color])=>{
+    const k=document.createElement("div"); k.className="kpi";
+    const cs = color==="ink" ? "var(--ink)" : `var(--${color})`;
+    k.innerHTML = `<div class="lbl">${lbl} <span class="currency-pill">${mainCur}</span></div><div class="val" style="color:${cs}; font-size:17px;">${val}</div>`;
+    cards.appendChild(k);
+  });
+  container.appendChild(cards);
+
+  // distribución por activo
+  const byAsset = {};
+  inv.forEach(i=>{ const a=i.asset||"Otro"; byAsset[a]=(byAsset[a]||0)+((Number(i.qty)||0)*(Number(i.unitCost)||0)); });
+  if(Object.keys(byAsset).length && invested>0){
+    const panel = document.createElement("div"); panel.className="panel";
+    panel.innerHTML = `<h2 style="margin:0 0 12px;">Distribución por activo</h2>`;
+    const cWrap = document.createElement("div"); cWrap.style.cssText="max-width:240px; height:200px; position:relative; margin:0 auto;";
+    const canvas = document.createElement("canvas"); cWrap.appendChild(canvas);
+    panel.appendChild(cWrap);
+    container.appendChild(panel);
+    if(window.Chart){
+      const labels = Object.keys(byAsset);
+      invCharts.push(new Chart(canvas.getContext("2d"), {
+        type:"doughnut",
+        data:{ labels, datasets:[{ data:Object.values(byAsset), backgroundColor:labels.map(colorForAsset), borderColor:"#131318", borderWidth:2 }] },
+        options:{ responsive:true, maintainAspectRatio:false, plugins:{ legend:{ position:"bottom", labels:{ color:"#92929d", font:{size:10}, boxWidth:9, padding:6 } } } }
+      }));
+    }
+  }
+
+  // inversión neta acumulada (compras - ventas, en el tiempo)
+  const purchases = DATA.invPurchases || [];
+  const sortedAsc = [...purchases].filter(p=>p.date).sort((a,b)=>a.date.localeCompare(b.date));
+  if(sortedAsc.length>1){
+    const linePanel = document.createElement("div"); linePanel.className="panel";
+    linePanel.innerHTML = `<h2 style="margin:0 0 12px;">Inversión neta acumulada</h2>`;
+    const lWrap = document.createElement("div"); lWrap.style.cssText="height:190px; position:relative;";
+    const lCanvas = document.createElement("canvas"); lWrap.appendChild(lCanvas);
+    linePanel.appendChild(lWrap);
+    container.appendChild(linePanel);
+    let running = 0;
+    const cum = sortedAsc.map(p=>{ running += (Number(p.amount)||0) * (p.operation==="Venta" ? -1 : 1); return running; });
+    if(window.Chart){
+      invCharts.push(new Chart(lCanvas.getContext("2d"), {
+        type:"line",
+        data:{ labels:sortedAsc.map(p=>p.date), datasets:[{ label:"Acumulado", data:cum, borderColor:"#3ddc97", backgroundColor:"rgba(61,220,151,.15)", fill:true, tension:.3, pointRadius:0 }] },
+        options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}, scales:{x:{...CHART_AXIS_OPTS, ticks:{...CHART_AXIS_OPTS.ticks, maxTicksLimit:4}},y:CHART_AXIS_OPTS} }
+      }));
+    }
+  }
+
+  // activos principales (por monto invertido)
+  const ranked = [...inv].sort((a,b)=>((Number(b.qty)||0)*(Number(b.unitCost)||0)) - ((Number(a.qty)||0)*(Number(a.unitCost)||0))).slice(0,4);
+  if(ranked.length){
+    const listPanel = document.createElement("div"); listPanel.className="panel";
+    listPanel.innerHTML = `<h2 style="margin:0 0 6px;">Activos principales</h2>`;
+    ranked.forEach(i=>{
+      const qty = Number(i.qty)||0;
+      const unitCost = Number(i.unitCost)||0;
+      const curPrice = (i.currentPrice!==undefined && i.currentPrice!=="") ? Number(i.currentPrice) : unitCost;
+      const investedRow = qty*unitCost;
+      const resultPctRow = investedRow ? ((qty*curPrice-investedRow)/investedRow*100) : 0;
+      const row = document.createElement("div"); row.className="mini-card-row";
+      row.innerHTML = `<div><div class="title">${i.asset||"—"}</div><div class="meta">${fmtQty(qty)} · $${fmtMoney(curPrice)}</div></div>
+        <div class="meta" style="font-weight:700;color:${resultPctRow>=0?"var(--green)":"var(--red)"}">${resultPctRow>=0?"+":""}${resultPctRow.toFixed(1)}%</div>`;
+      listPanel.appendChild(row);
+    });
+    container.appendChild(listPanel);
+  }
+}
+
+function renderInversiones(container){
+  syncPositionsFromPurchases();
+  const inv = DATA.investments;
+  inv.forEach(i=>{
+    if(i.currency===undefined) i.currency="USDT";
+    if(i.type===undefined) i.type="Crypto";
+    if(i.platform===undefined) i.platform="";
+    if(i.sellTargets===undefined){
+      const m = (i.notes||"").match(/TP:?\s*([0-9.,\/\s]+)/i);
+      if(m){ i.sellTargets = m[1].trim().replace(/\s+/g,"").replace(/,/g,""); i.notes = (i.notes||"").replace(m[0],"").trim(); }
+      else i.sellTargets = "";
+    }
+  });
+  const currencies = Array.from(new Set(inv.map(i=>i.currency||"USDT")));
+  if(currencies.length===0) currencies.push("USDT");
+
+  destroyInvCharts();
+  if(isMobileView()) renderMobileInversionesSummary(container, inv);
+
+  currencies.forEach(cur=>{
+    const items = inv.filter(i=>(i.currency||"ARS")===cur);
+    if(items.length===0) return;
+    const sym = CURRENCY_SYMBOL[cur] ?? "";
+
+    if(currencies.length>1){
+      const heading = document.createElement("div");
+      heading.style.cssText="display:flex;align-items:center;gap:8px;margin:4px 0 8px;";
+      heading.innerHTML = `<h2 style="margin:0;">${cur}</h2>`;
+      container.appendChild(heading);
+    }
+
+    const invested = items.reduce((a,b)=>a+((Number(b.qty)||0)*(Number(b.unitCost)||0)),0);
+    const currentValue = items.reduce((a,b)=>{
+      const cp = b.currentPrice!==undefined && b.currentPrice!=="" ? Number(b.currentPrice) : Number(b.unitCost)||0;
+      return a + ((Number(b.qty)||0)*(cp||0));
+    },0);
+    const result = currentValue - invested;
+
+    const kpis = document.createElement("div"); kpis.className="kpis";
+    [["Invertido",sym+fmtMoney(invested),"ink"],["Valor actual",sym+fmtMoney(currentValue),"ink"],["Resultado",(result>=0?"+":"")+sym+fmtMoney(result), result>=0?"green":"red"]].forEach(([lbl,val,color])=>{
+      const k=document.createElement("div"); k.className="kpi";
+      const colorStyle = color==="ink" ? "var(--ink)" : `var(--${color})`;
+      k.innerHTML = `<div class="lbl">${lbl} <span class="currency-pill">${cur}</span></div><div class="val" style="color:${colorStyle}">${val}</div>`;
+      kpis.appendChild(k);
+    });
+    container.appendChild(kpis);
+
+    // gráfico de distribución por activo
+    const byAsset = {};
+    items.forEach(i=>{ const a=i.asset||"Otro"; byAsset[a]=(byAsset[a]||0)+((Number(i.qty)||0)*(Number(i.unitCost)||0)); });
+    const chartPanel = document.createElement("div"); chartPanel.className="panel";
+    chartPanel.innerHTML = `<h2 style="margin:0 0 12px;">Distribución por activo</h2>`;
+    const cWrap = document.createElement("div"); cWrap.style.cssText="max-width:280px; height:220px; position:relative; margin:0 auto;";
+    const canvas = document.createElement("canvas");
+    cWrap.appendChild(canvas);
+    chartPanel.appendChild(cWrap);
+    container.appendChild(chartPanel);
+    if(Object.keys(byAsset).length===0 || invested===0){
+      const e=document.createElement("div"); e.className="chart-empty"; e.style.position="static"; e.textContent="Sin datos suficientes todavía";
+      cWrap.appendChild(e);
+    } else if(window.Chart){
+      const labels = Object.keys(byAsset);
+      invCharts.push(new Chart(canvas.getContext("2d"), {
+        type:"doughnut",
+        data:{ labels, datasets:[{ data:Object.values(byAsset), backgroundColor:labels.map(colorForAsset), borderColor:"#131318", borderWidth:2 }] },
+        options:{ responsive:true, maintainAspectRatio:false, plugins:{ legend:{ position:"bottom", labels:{ color:"#92929d", font:{size:10.5}, boxWidth:10, padding:8 } } } }
+      }));
+    }
+  });
+
+  renderPurchaseCharts(container);
+  renderInvestmentFeedback(container);
+  renderAggregateTargets(container);
+  renderStaggeredPlan(container);
+
+  // tabla de posiciones
+  const panel = document.createElement("div"); panel.className="panel";
+  const head = document.createElement("div");
+  head.style.cssText="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;";
+  head.innerHTML=`<h2 style="margin:0;">Posiciones</h2>`;
+  const addBtn = document.createElement("button");
+  addBtn.className="btn small"; addBtn.textContent="+ Nueva inversión";
+  addBtn.onclick=()=>{
+    DATA.investments.unshift({id:uid(), date:todayISO(), type:"Crypto", asset:"", qty:"", unitCost:"", currency:"USDT", currentPrice:"", platform:"", sellTargets:"", notes:""});
+    save(); renderAll();
+  };
+  head.appendChild(addBtn);
+  panel.appendChild(head);
+
+  if(inv.length===0){
+    const e=document.createElement("div"); e.className="empty"; e.textContent="Todavía no cargaste inversiones.";
+    panel.appendChild(e);
+  } else {
+    const tableWrap = document.createElement("div"); tableWrap.style.overflowX="auto";
+    const table = document.createElement("table");
+    table.className = "rtable";
+    table.innerHTML = `<thead><tr>
+      <th>Fecha</th><th>Tipo</th><th>Activo</th><th style="text-align:right;">Cantidad</th>
+      <th style="text-align:right;">Precio compra</th><th>Moneda</th><th style="text-align:right;">Invertido</th>
+      <th style="text-align:right;">Precio actual</th><th style="text-align:right;">Resultado</th><th>Plataforma</th><th>Obj. de venta</th><th>Notas</th><th></th>
+    </tr></thead>`;
+    const tbody = document.createElement("tbody");
+    inv.forEach(i=>{
+      const qty = Number(i.qty)||0;
+      const unitCost = Number(i.unitCost)||0;
+      const investedRow = qty*unitCost;
+      const hasCurrent = i.currentPrice!==undefined && i.currentPrice!=="";
+      const curPrice = hasCurrent ? Number(i.currentPrice) : unitCost;
+      const resultRow = qty*curPrice - investedRow;
+      const sym = CURRENCY_SYMBOL[i.currency||"USDT"] ?? "US$";
+      const autoSynced = (DATA.invPurchases||[]).some(p=>p.asset===i.asset);
+
+      const tr = document.createElement("tr");
+      tr.appendChild(td("Fecha", makeTextInput(i.date, v=>{i.date=v; save();}, "date")));
+      tr.appendChild(td("Tipo", makeSelect(i.type, INVESTMENT_TYPES, v=>{i.type=v; save(); renderAll();})));
+      const aInp=makeTextInput(i.asset, v=>{i.asset=v; save(); debouncedRenderAll();}, "text", "Ej: Bitcoin, AAPL", i.id+"-asset"); aInp.style.minWidth="140px";
+      tr.appendChild(td("Activo", aInp));
+      const qInp=makeTextInput(i.qty, v=>{i.qty=v; save(); debouncedRenderAll();}, "text", "0", i.id+"-qty"); qInp.style.textAlign="right"; qInp.setAttribute("inputmode","decimal");
+      if(autoSynced){ qInp.disabled = true; qInp.title = "Se calcula solo desde el historial de compras/ventas de "+i.asset; qInp.style.opacity=".6"; }
+      const tdQty=td("Cantidad", qInp); tdQty.style.textAlign="right"; tr.appendChild(tdQty);
+      const cInp=makeTextInput(i.unitCost, v=>{i.unitCost=v; save(); debouncedRenderAll();}, "text", "0", i.id+"-cost"); cInp.style.textAlign="right"; cInp.setAttribute("inputmode","decimal");
+      if(autoSynced){ cInp.disabled = true; cInp.title = "Se calcula solo desde el historial de compras/ventas de "+i.asset; cInp.style.opacity=".6"; }
+      const tdCost=td("Precio compra", cInp); tdCost.style.textAlign="right"; tr.appendChild(tdCost);
+      tr.appendChild(td("Moneda", makeSelect(i.currency, INVESTMENT_CURRENCIES, v=>{i.currency=v; save(); renderAll();})));
+      const tdInvested=td("Invertido", document.createTextNode(sym+fmtMoney(investedRow))); tdInvested.style.textAlign="right"; tdInvested.style.color="var(--ink-soft)"; tr.appendChild(tdInvested);
+      const pInp=makeTextInput(i.currentPrice, v=>{i.currentPrice=v; save(); debouncedRenderAll();}, "text", "= precio compra", i.id+"-curprice"); pInp.style.textAlign="right"; pInp.setAttribute("inputmode","decimal");
+      const tdCurPrice=td("Precio actual", pInp); tdCurPrice.style.textAlign="right"; tr.appendChild(tdCurPrice);
+      const tdResult=td("Resultado", document.createTextNode((resultRow>=0?"+":"")+sym+fmtMoney(resultRow)));
+      tdResult.style.textAlign="right"; tdResult.style.fontWeight="700"; tdResult.style.color= resultRow>=0 ? "var(--green)" : "var(--red)";
+      tr.appendChild(tdResult);
+      const platInp = makeTextInput(i.platform, v=>{i.platform=v; save(); debouncedRenderAll();}, "text", "Ej: Binance", i.id+"-platform"); platInp.style.minWidth="100px";
+      tr.appendChild(td("Plataforma", platInp));
+      const targetsInp = makeTextInput(i.sellTargets, v=>{i.sellTargets=v; save(); debouncedRenderAll();}, "text", "Ej: 85000/100000/130000", i.id+"-targets"); targetsInp.style.minWidth="150px";
+      tr.appendChild(td("Obj. de venta", targetsInp));
+      const invNotesInp = makeTextInput(i.notes, v=>{i.notes=v; save();}, "text", "Notas"); invNotesInp.style.minWidth="140px";
+      tr.appendChild(td("Notas", invNotesInp));
+      const del=document.createElement("button"); del.className="iconbtn"; del.textContent="✕";
+      del.onclick=()=>{ softDelete("investments", i); };
+      tr.appendChild(td(null, del));
+      tbody.appendChild(tr);
+    });
+    table.appendChild(tbody);
+    tableWrap.appendChild(table);
+    panel.appendChild(tableWrap);
+  }
+  container.appendChild(panel);
+
+  renderPurchaseHistory(container);
+}
+
+function renderPurchaseCharts(container){
+  const purchases = DATA.invPurchases || [];
+  if(purchases.length===0) return;
+
+  const chartPanel = document.createElement("div"); chartPanel.className="panel";
+  chartPanel.innerHTML = `<h2 style="margin:0 0 12px;">Gráficos</h2>`;
+  const grid = document.createElement("div"); grid.className="chart-grid";
+  const byAsset = {}, byPlat = {};
+  purchases.forEach(p=>{
+    const amt = (Number(p.amount)||0) * (p.operation==="Venta" ? -1 : 1);
+    byAsset[p.asset||"—"] = (byAsset[p.asset||"—"]||0) + amt;
+    byPlat[p.platform||"—"] = (byPlat[p.platform||"—"]||0) + amt;
+  });
+  const assetCol = chartColumn("Por activo (neto)");
+  const platCol = chartColumn("Por plataforma (neto)");
+  grid.appendChild(assetCol.wrap);
+  grid.appendChild(platCol.wrap);
+  chartPanel.appendChild(grid);
+  container.appendChild(chartPanel);
+
+  if(Object.keys(byAsset).length===0){ assetCol.empty(); }
+  else if(window.Chart){
+    const labels = Object.keys(byAsset);
+    invCharts.push(new Chart(assetCol.canvas.getContext("2d"), {
+      type:"bar",
+      data:{ labels, datasets:[{ data:Object.values(byAsset), backgroundColor:labels.map(colorForAsset), borderRadius:6 }] },
+      options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}, scales:{x:CHART_AXIS_OPTS,y:CHART_AXIS_OPTS} }
+    }));
+  }
+  if(Object.keys(byPlat).length===0){ platCol.empty(); }
+  else if(window.Chart){
+    invCharts.push(new Chart(platCol.canvas.getContext("2d"), {
+      type:"bar",
+      data:{ labels:Object.keys(byPlat), datasets:[{ data:Object.values(byPlat), backgroundColor:"#0ea5e9", borderRadius:6 }] },
+      options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}, scales:{x:CHART_AXIS_OPTS,y:CHART_AXIS_OPTS} }
+    }));
+  }
+
+  const sortedAsc = [...purchases].filter(p=>p.date).sort((a,b)=>a.date.localeCompare(b.date));
+  if(sortedAsc.length>1){
+    const linePanel = document.createElement("div"); linePanel.className="panel";
+    linePanel.innerHTML = `<h2 style="margin:0 0 12px;">Inversión neta acumulada en el tiempo</h2>`;
+    const lWrap = document.createElement("div"); lWrap.style.cssText="height:220px; position:relative;";
+    const lCanvas = document.createElement("canvas"); lWrap.appendChild(lCanvas);
+    linePanel.appendChild(lWrap);
+    container.appendChild(linePanel);
+    let running = 0;
+    const cum = sortedAsc.map(p=>{ running += (Number(p.amount)||0) * (p.operation==="Venta" ? -1 : 1); return running; });
+    if(window.Chart){
+      invCharts.push(new Chart(lCanvas.getContext("2d"), {
+        type:"line",
+        data:{ labels:sortedAsc.map(p=>p.date), datasets:[{ label:"Acumulado", data:cum, borderColor:"#3ddc97", backgroundColor:"rgba(61,220,151,.15)", fill:true, tension:.3, pointRadius:2, pointHoverRadius:5 }] },
+        options:{
+          responsive:true, maintainAspectRatio:false,
+          interaction:{ mode:"index", intersect:false },
+          hover:{ mode:"index", intersect:false },
+          plugins:{ legend:{display:false}, tooltip:{ mode:"index", intersect:false } },
+          scales:{x:CHART_AXIS_OPTS,y:CHART_AXIS_OPTS}
+        },
+        plugins:[crosshairPlugin]
+      }));
+    }
+  }
+}
+
+// Lectura objetiva de cada posición: qué tan lejos está del próximo objetivo
+// de venta y cómo viene contra el precio promedio de compra. Es información,
+// no una recomendación — la decisión de tomar ganancias o seguir comprando
+// queda siempre del lado del usuario.
+function computeAssetSignal(pos){
+  const qty = Number(pos.qty)||0;
+  if(qty<=0) return null;
+  const unitCost = Number(pos.unitCost)||0;
+  const hasCurrent = pos.currentPrice!==undefined && pos.currentPrice!=="";
+  const price = hasCurrent ? Number(pos.currentPrice) : unitCost;
+  const gainPct = unitCost>0 ? ((price/unitCost)-1)*100 : 0;
+  const targets = parseTargets(pos.sellTargets).sort((a,b)=>a-b);
+  const reachedCount = targets.filter(t=>price>=t).length;
+  const nextTarget = targets.find(t=>price<t);
+  const distancePct = (nextTarget && price>0) ? ((nextTarget/price)-1)*100 : null;
+  return { asset: pos.asset, price, unitCost, gainPct, targets, nextTarget, reachedCount, distancePct, hasCurrent };
+}
+
+function renderInvestmentFeedback(container){
+  const positions = (DATA.investments||[]).filter(p=>p.asset && (Number(p.qty)||0)>0);
+  if(positions.length===0) return;
+
+  const panel = document.createElement("div"); panel.className="panel";
+  panel.innerHTML = `<h2 style="margin:0 0 4px;">Feedback en tiempo real</h2>
+    <p style="margin:0 0 14px;font-size:12px;color:var(--ink-soft);">Lectura objetiva de cada posición contra tu precio promedio y tus objetivos de venta — es información para decidir vos, no una recomendación de compra o venta.</p>`;
+
+  const list = document.createElement("div"); list.style.cssText="display:flex;flex-direction:column;gap:10px;";
+  positions.forEach(pos=>{
+    const sig = computeAssetSignal(pos);
+    if(!sig) return;
+    const row = document.createElement("div");
+    row.style.cssText = "display:flex;flex-wrap:wrap;align-items:center;gap:12px;padding:13px 15px;border:1px solid var(--line);border-radius:10px;";
+
+    const left = document.createElement("div"); left.style.cssText="flex:1;min-width:180px;";
+    const nameEl = document.createElement("div"); nameEl.style.cssText="font-weight:700;font-size:13.5px;color:var(--ink);"; nameEl.textContent=sig.asset;
+    left.appendChild(nameEl);
+
+    let tagText, tagColor;
+    if(!sig.hasCurrent){
+      tagText = "Cargá un precio actual para ver la señal";
+      tagColor = "var(--ink-soft)";
+    } else if(sig.targets.length===0){
+      tagText = `${sig.gainPct>=0?"+":""}${sig.gainPct.toFixed(1)}% vs. promedio de compra · sin objetivos de venta definidos`;
+      tagColor = sig.gainPct>=0 ? "var(--green)" : "var(--red)";
+    } else if(sig.reachedCount>=sig.targets.length){
+      tagText = `Todos los objetivos de venta alcanzados (${sig.gainPct>=0?"+":""}${sig.gainPct.toFixed(1)}%)`;
+      tagColor = "var(--green)";
+    } else if(sig.reachedCount>0){
+      tagText = `TP${sig.reachedCount} alcanzado · faltan ${sig.distancePct.toFixed(1)}% para TP${sig.reachedCount+1}`;
+      tagColor = "var(--green)";
+    } else if(sig.distancePct!==null && sig.distancePct<=10){
+      tagText = `Cerca de TP1 — a ${sig.distancePct.toFixed(1)}% de distancia`;
+      tagColor = "var(--amber)";
+    } else if(sig.gainPct<0){
+      tagText = `${sig.gainPct.toFixed(1)}% por debajo del promedio de compra`;
+      tagColor = "var(--red)";
+    } else {
+      tagText = `+${sig.gainPct.toFixed(1)}% vs. promedio · faltan ${sig.distancePct!==null?sig.distancePct.toFixed(1)+"%":"—"} para TP1`;
+      tagColor = "var(--ink)";
+    }
+    const tagEl = document.createElement("div"); tagEl.style.cssText=`font-size:12px;margin-top:3px;color:${tagColor};`; tagEl.textContent=tagText;
+    left.appendChild(tagEl);
+    row.appendChild(left);
+
+    const priceEl = document.createElement("div");
+    priceEl.style.cssText = "text-align:right;flex-shrink:0;";
+    priceEl.innerHTML = `<div style="font-size:14px;font-weight:700;color:var(--ink);">$${fmtMoney(sig.price)}</div><div style="font-size:10.5px;color:var(--ink-soft);">promedio $${fmtMoney(sig.unitCost)}</div>`;
+    row.appendChild(priceEl);
+
+    list.appendChild(row);
+  });
+  panel.appendChild(list);
+  container.appendChild(panel);
+}
+
+function renderAggregateTargets(container){
+  const positions = (DATA.investments||[]).filter(p=>p.asset);
+  if(positions.length===0) return;
+  const anyTargets = positions.some(p=>parseTargets(p.sellTargets).length>0);
+  if(!anyTargets) return;
+
+  const panel = document.createElement("div"); panel.className="panel";
+  panel.innerHTML = `<h2 style="margin:0 0 4px;">Objetivos de venta combinados</h2>
+    <div style="font-size:12.5px;color:var(--ink-soft);margin-bottom:14px;">Si cada activo llega a su propio TP1 / TP2 / TP3 al mismo tiempo, esto es lo que pasaría con toda la cartera junta.</div>`;
+
+  const row = document.createElement("div");
+  row.style.cssText="display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:14px;";
+
+  [0,1,2].forEach(levelIdx=>{
+    let totalInvested=0, totalValue=0;
+    const includedAssets = [];
+    positions.forEach(p=>{
+      const targets = parseTargets(p.sellTargets);
+      if(targets.length>levelIdx){
+        const qty = Number(p.qty)||0;
+        const avgCost = Number(p.unitCost)||0;
+        totalInvested += qty*avgCost;
+        totalValue += qty*targets[levelIdx];
+        includedAssets.push(p.asset);
+      }
+    });
+    const gain = totalValue - totalInvested;
+    const gainPct = totalInvested ? (gain/totalInvested*100) : 0;
+    const gc = gain>=0 ? "var(--green)" : "var(--red)";
+
+    const card = document.createElement("div");
+    card.style.cssText="background:rgba(255,255,255,.02); border:1px solid var(--line); border-radius:var(--radius); padding:16px 18px;";
+    if(includedAssets.length===0){
+      card.innerHTML = `<div style="font-size:13px;font-weight:700;margin-bottom:8px;">TP${levelIdx+1}</div>
+        <div class="empty" style="padding:0;">Ningún activo tiene este nivel definido todavía.</div>`;
+    } else {
+      card.innerHTML = `
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+          <div style="font-size:13px;font-weight:700;">TP${levelIdx+1}</div>
+          <div style="font-size:11px;color:var(--ink-soft);">${includedAssets.length} activo${includedAssets.length>1?"s":""}</div>
+        </div>
+        <div style="font-size:11px;color:var(--ink-soft);text-transform:uppercase;letter-spacing:.03em;">Valor total si vendo todo</div>
+        <div style="font-size:20px;font-weight:700;color:var(--ink);margin-bottom:8px;">$${fmtMoney(totalValue)}</div>
+        <div style="font-size:11px;color:var(--ink-soft);text-transform:uppercase;letter-spacing:.03em;">Ganancia combinada</div>
+        <div style="font-size:16px;font-weight:700;color:${gc};">${gain>=0?"+":""}$${fmtMoney(gain)} (${gainPct>=0?"+":""}${gainPct.toFixed(1)}%)</div>
+        <div style="font-size:11px;color:var(--ink-soft);margin-top:10px;">${includedAssets.join(", ")}</div>
+      `;
+    }
+    row.appendChild(card);
+  });
+
+  panel.appendChild(row);
+  container.appendChild(panel);
+}
+
+function renderStaggeredPlan(container){
+  const purchases = (DATA.invPurchases||[]).filter(p=>p.operation==="Compra" && p.asset);
+  const positions = DATA.investments||[];
+  const assetsSet = new Set([...purchases.map(p=>p.asset), ...positions.map(p=>p.asset)].filter(Boolean));
+  if(assetsSet.size===0) return;
+
+  const heading = document.createElement("div");
+  heading.style.cssText="margin:4px 0 2px;";
+  heading.innerHTML = `<h2 style="margin:0 0 4px;font-size:15.5px;">Plan de compras y estrategia de venta</h2>
+    <div style="font-size:12.5px;color:var(--ink-soft);margin-bottom:14px;">Compras escalonadas por activo y objetivos de venta para trazar tu estrategia de ganancia.</div>`;
+  container.appendChild(heading);
+
+  const totalByAsset = {};
+  purchases.forEach(p=>{ totalByAsset[p.asset] = (totalByAsset[p.asset]||0) + (Number(p.amount)||0); });
+  const assets = Array.from(assetsSet).sort((a,b)=>(totalByAsset[b]||0)-(totalByAsset[a]||0));
+
+  assets.forEach(asset=>{
+    const buys = purchases.filter(p=>p.asset===asset).sort((a,b)=>(a.date||"").localeCompare(b.date||""));
+    const pos = positions.find(p=>p.asset===asset);
+    const platformsUsed = Array.from(new Set(buys.map(b=>b.platform).filter(Boolean)));
+    const assetColor = colorForAsset(asset);
+    if(invExpandedAssets[asset]===undefined) invExpandedAssets[asset] = true;
+    const expanded = invExpandedAssets[asset];
+
+    const card = document.createElement("div"); card.className="panel";
+    const cardHead = document.createElement("button");
+    cardHead.style.cssText="width:100%; display:flex; align-items:center; justify-content:space-between; margin-bottom:0; flex-wrap:wrap; gap:8px; background:none; border:none; cursor:pointer; font-family:inherit; text-align:left; padding:0;";
+    cardHead.innerHTML = `<span style="display:flex; align-items:center; gap:10px; min-width:0;">
+        <span style="display:inline-block; transition:transform .15s; transform:rotate(${expanded?90:0}deg); color:var(--ink-soft); font-size:11px; flex-shrink:0;">▶</span>
+        <span style="width:10px;height:10px;border-radius:50%;background:${assetColor};flex-shrink:0;"></span>
+        <h3 style="margin:0; font-size:16px; color:var(--ink);">${asset}</h3>
+      </span>
+      <span style="font-size:11.5px;color:var(--ink-soft);">${platformsUsed.length? "Plataformas: "+platformsUsed.join(", ") : ""}</span>`;
+    cardHead.onclick = ()=>{ invExpandedAssets[asset] = !invExpandedAssets[asset]; renderAll(); };
+    card.appendChild(cardHead);
+
+    if(!expanded){ container.appendChild(card); return; }
+
+    const body = document.createElement("div"); body.style.cssText="margin-top:14px;";
+
+    const buysHead = document.createElement("div");
+    buysHead.style.cssText="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;";
+    buysHead.innerHTML = `<div style="font-size:12.5px;color:var(--ink-soft);">Compras escalonadas</div>`;
+    const addBuyBtn = document.createElement("button");
+    addBuyBtn.className="btn small"; addBuyBtn.textContent="+ Agregar compra";
+    addBuyBtn.onclick=(e)=>{
+      e.stopPropagation();
+      DATA.invPurchases.unshift({id:uid(), date:todayISO(), asset:asset, operation:"Compra", qty:"", price:"", amount:"", currency:"USDT", platform:"", notes:""});
+      save(); renderAll();
+    };
+    buysHead.appendChild(addBuyBtn);
+    body.appendChild(buysHead);
+
+    if(buys.length){
+      const tw = document.createElement("div"); tw.style.overflowX="auto";
+      const table = document.createElement("table"); table.className="rtable";
+      table.innerHTML = `<thead><tr><th>#</th><th>Fecha</th><th style="text-align:right;">Monto (USDT)</th><th style="text-align:right;">Precio</th><th style="text-align:right;">Cantidad</th><th>Plataforma</th><th></th></tr></thead>`;
+      const tbody = document.createElement("tbody");
+      let sumAmount=0, sumQty=0;
+      buys.forEach((b,idx)=>{
+        sumAmount += Number(b.amount)||0;
+        sumQty += Number(b.qty)||0;
+        const tr = document.createElement("tr");
+        tr.appendChild(td("#", document.createTextNode(String(idx+1))));
+        tr.appendChild(td("Fecha", makeTextInput(b.date, v=>{b.date=v; save(); renderAll();}, "date")));
+        const amtInp = makeTextInput(b.amount, v=>{
+          b.amount=v;
+          const q = calcQtyFromAmountPrice(v, b.price);
+          if(q!==null) b.qty = q;
+          save(); debouncedRenderAll();
+        }, "text","0", b.id+"-amount"); amtInp.style.textAlign="right"; amtInp.setAttribute("inputmode","decimal");
+        const tdAm = td("Monto (USDT)", amtInp); tdAm.style.textAlign="right"; tr.appendChild(tdAm);
+        const priceInp = makeTextInput(b.price, v=>{
+          b.price=v;
+          const q = calcQtyFromAmountPrice(b.amount, v);
+          if(q!==null) b.qty = q;
+          save(); debouncedRenderAll();
+        }, "text","0", b.id+"-price"); priceInp.style.textAlign="right"; priceInp.setAttribute("inputmode","decimal");
+        const tdP = td("Precio", priceInp); tdP.style.textAlign="right"; tr.appendChild(tdP);
+        const qInp = makeTextInput(b.qty, v=>{b.qty=v; save(); debouncedRenderAll();}, "text","calculada auto", b.id+"-qty"); qInp.style.textAlign="right"; qInp.setAttribute("inputmode","decimal");
+        const tdQ = td("Cantidad", qInp); tdQ.style.textAlign="right"; tr.appendChild(tdQ);
+        const platInp = makeTextInput(b.platform, v=>{b.platform=v; save(); debouncedRenderAll();}, "text","Plataforma", b.id+"-plat"); platInp.style.minWidth="90px";
+        tr.appendChild(td("Plataforma", platInp));
+        const del=document.createElement("button"); del.className="iconbtn"; del.textContent="✕";
+        del.onclick=()=>{ softDelete("invPurchases", b); };
+        tr.appendChild(td(null, del));
+        tbody.appendChild(tr);
+      });
+      table.appendChild(tbody);
+      const tfoot = document.createElement("tfoot");
+      const avgPrice = sumQty ? sumAmount/sumQty : 0;
+      tfoot.innerHTML = `<tr style="background:rgba(61,220,151,.08); font-weight:700;">
+        <td colspan="2">Total</td>
+        <td style="text-align:right;color:var(--green);">$${fmtMoney(sumAmount)}</td>
+        <td style="text-align:right;">prom. $${fmtMoney(avgPrice)}</td>
+        <td style="text-align:right;">${fmtQty(sumQty)}</td>
+        <td></td><td></td>
+      </tr>`;
+      table.appendChild(tfoot);
+      tw.appendChild(table);
+      body.appendChild(tw);
+    } else {
+      const e=document.createElement("div"); e.className="empty"; e.textContent="Sin compras registradas todavía para "+asset+".";
+      body.appendChild(e);
+    }
+
+    if(pos){
+      const qty = Number(pos.qty)||0;
+      const avgCost = Number(pos.unitCost)||0;
+      const curPrice = (pos.currentPrice!==undefined && pos.currentPrice!=="") ? Number(pos.currentPrice) : avgCost;
+      const invested = qty*avgCost;
+      const currentValue = qty*curPrice;
+      const result = currentValue - invested;
+      const resultPct = invested ? (result/invested*100) : 0;
+
+      const kpis = document.createElement("div"); kpis.className="kpis"; kpis.style.cssText="margin:14px 0 0;";
+      [
+        ["Cantidad en cartera", fmtQty(qty), "ink"],
+        ["Precio promedio", "$"+fmtMoney(avgCost), "ink"],
+        ["Precio actual", "$"+fmtMoney(curPrice), "ink"],
+        ["Resultado", (result>=0?"+":"")+"$"+fmtMoney(result)+" ("+(resultPct>=0?"+":"")+resultPct.toFixed(1)+"%)", result>=0?"green":"red"]
+      ].forEach(([lbl,val,color])=>{
+        const k=document.createElement("div"); k.className="kpi";
+        const cs = color==="ink" ? "var(--ink)" : `var(--${color})`;
+        k.innerHTML = `<div class="lbl">${lbl}</div><div class="val" style="color:${cs}; font-size:15px;">${val}</div>`;
+        kpis.appendChild(k);
+      });
+      body.appendChild(kpis);
+
+      const targets = parseTargets(pos.sellTargets);
+      const sellWrap = document.createElement("div"); sellWrap.style.cssText="margin-top:6px;";
+      const sellHead = document.createElement("div"); sellHead.style.cssText="font-size:12.5px;color:var(--ink-soft);margin-bottom:8px;"; sellHead.textContent="Objetivos de venta";
+      sellWrap.appendChild(sellHead);
+      if(targets.length===0){
+        const e=document.createElement("div"); e.className="empty";
+        e.textContent=`Definí objetivos de venta para ${asset} en la tabla Posiciones de abajo (columna "Obj. de venta", ej: 85000/100000/130000).`;
+        sellWrap.appendChild(e);
+      } else {
+        const tw2 = document.createElement("div"); tw2.style.overflowX="auto";
+        const t2 = document.createElement("table"); t2.className="rtable";
+        t2.innerHTML = `<thead><tr><th>Objetivo</th><th style="text-align:right;">Precio</th><th style="text-align:right;">Valor si vendo todo</th><th style="text-align:right;">Ganancia</th><th style="text-align:right;">%</th></tr></thead>`;
+        const tb2 = document.createElement("tbody");
+        targets.forEach((t,idx)=>{
+          const value = qty*t;
+          const gain = value-invested;
+          const gainPct = invested ? gain/invested*100 : 0;
+          const gc = gain>=0 ? "var(--green)" : "var(--red)";
+          const tr = document.createElement("tr");
+          tr.innerHTML = `<td>TP${idx+1}</td><td style="text-align:right;">$${fmtMoney(t)}</td><td style="text-align:right;">$${fmtMoney(value)}</td>
+            <td style="text-align:right;color:${gc};font-weight:700;">${gain>=0?"+":""}$${fmtMoney(gain)}</td>
+            <td style="text-align:right;color:${gc};">${gainPct>=0?"+":""}${gainPct.toFixed(1)}%</td>`;
+          tb2.appendChild(tr);
+        });
+        t2.appendChild(tb2);
+        tw2.appendChild(t2);
+        sellWrap.appendChild(tw2);
+      }
+      body.appendChild(sellWrap);
+    }
+
+    card.appendChild(body);
+    container.appendChild(card);
+  });
+}
+
+function renderPurchaseHistory(container){
+  const purchases = DATA.invPurchases || [];
+  purchases.forEach(p=>{
+    if(p.currency===undefined) p.currency="USDT";
+    if(p.platform===undefined) p.platform="";
+    if(p.operation===undefined) p.operation="Compra";
+  });
+
+  const assets = Array.from(new Set(purchases.map(p=>p.asset).filter(Boolean))).sort();
+  const platforms = Array.from(new Set(purchases.map(p=>p.platform).filter(Boolean))).sort();
+  if(invFilterAsset!=="Todos" && !assets.includes(invFilterAsset)) invFilterAsset="Todos";
+  if(invFilterPlatform!=="Todas" && !platforms.includes(invFilterPlatform)) invFilterPlatform="Todas";
+
+  const filterPanel = document.createElement("div"); filterPanel.className="panel";
+  filterPanel.innerHTML = `<h2 style="margin:0 0 12px;">Historial de compras</h2>`;
+  const filterRow = document.createElement("div");
+  filterRow.style.cssText="display:flex; flex-wrap:wrap; gap:12px; margin-bottom:16px;";
+  filterRow.appendChild(labeledControl("Activo", makeSelect(invFilterAsset, ["Todos",...assets], v=>{invFilterAsset=v; renderAll();})));
+  filterRow.appendChild(labeledControl("Plataforma", makeSelect(invFilterPlatform, ["Todas",...platforms], v=>{invFilterPlatform=v; renderAll();})));
+  filterRow.appendChild(labeledControl("Operación", makeSelect(invFilterOp, ["Todas","Compra","Venta"], v=>{invFilterOp=v; renderAll();})));
+  filterRow.appendChild(labeledControl("Desde", makeTextInput(invFilterFrom, v=>{invFilterFrom=v; renderAll();}, "date")));
+  filterRow.appendChild(labeledControl("Hasta", makeTextInput(invFilterTo, v=>{invFilterTo=v; renderAll();}, "date")));
+  const minInp = makeTextInput(invFilterMinAmount, v=>{invFilterMinAmount=v; renderAll();}, "text", "0"); minInp.setAttribute("inputmode","decimal");
+  filterRow.appendChild(labeledControl("Monto mín. (USDT)", minInp));
+  filterPanel.appendChild(filterRow);
+
+  const filtered = purchases.filter(p=>{
+    if(invFilterAsset!=="Todos" && p.asset!==invFilterAsset) return false;
+    if(invFilterPlatform!=="Todas" && p.platform!==invFilterPlatform) return false;
+    if(invFilterOp!=="Todas" && p.operation!==invFilterOp) return false;
+    if(invFilterFrom && p.date && p.date<invFilterFrom) return false;
+    if(invFilterTo && p.date && p.date>invFilterTo) return false;
+    if(invFilterMinAmount && (Number(p.amount)||0) < Number(invFilterMinAmount)) return false;
+    return true;
+  }).sort((a,b)=>(b.date||"").localeCompare(a.date||""));
+
+  const totalCompras = filtered.filter(p=>p.operation==="Compra").reduce((a,b)=>a+(Number(b.amount)||0),0);
+  const totalVentas = filtered.filter(p=>p.operation==="Venta").reduce((a,b)=>a+(Number(b.amount)||0),0);
+  const neto = totalCompras - totalVentas;
+  const kpis2 = document.createElement("div"); kpis2.className="kpis";
+  [["Total comprado","US$"+fmtMoney(totalCompras),"green"],["Total vendido","US$"+fmtMoney(totalVentas),"red"],["Neto invertido","US$"+fmtMoney(neto),"ink"]].forEach(([lbl,val,color])=>{
+    const k=document.createElement("div"); k.className="kpi";
+    const cs = color==="ink" ? "var(--ink)" : `var(--${color})`;
+    k.innerHTML = `<div class="lbl">${lbl}</div><div class="val" style="color:${cs}">${val}</div>`;
+    kpis2.appendChild(k);
+  });
+  filterPanel.appendChild(kpis2);
+  container.appendChild(filterPanel);
+
+  // tabla de compras
+  const panel = document.createElement("div"); panel.className="panel";
+  const head = document.createElement("div");
+  head.style.cssText="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;";
+  head.innerHTML=`<h2 style="margin:0;">Movimientos (${filtered.length})</h2>`;
+  const addBtn = document.createElement("button");
+  addBtn.className="btn small"; addBtn.textContent="+ Nueva compra";
+  addBtn.onclick=()=>{
+    DATA.invPurchases.unshift({id:uid(), date:todayISO(), asset:"", operation:"Compra", qty:"", price:"", amount:"", currency:"USDT", platform:"", notes:""});
+    save(); renderAll();
+  };
+  head.appendChild(addBtn);
+  panel.appendChild(head);
+
+  if(filtered.length===0){
+    const e=document.createElement("div"); e.className="empty"; e.textContent="No hay compras que coincidan con los filtros.";
+    panel.appendChild(e);
+  } else {
+    const tableWrap = document.createElement("div"); tableWrap.style.overflowX="auto";
+    const table = document.createElement("table"); table.className="rtable";
+    table.innerHTML = `<thead><tr><th>Fecha</th><th>Activo</th><th>Operación</th><th style="text-align:right;">Cantidad</th><th style="text-align:right;">Precio</th><th style="text-align:right;">Total</th><th>Plataforma</th><th>Notas</th><th></th></tr></thead>`;
+    const tbody = document.createElement("tbody");
+    filtered.forEach(p=>{
+      const tr = document.createElement("tr");
+      tr.appendChild(td("Fecha", makeTextInput(p.date, v=>{p.date=v; save(); renderAll();}, "date")));
+      const assetInp = makeTextInput(p.asset, v=>{p.asset=v; save(); debouncedRenderAll();}, "text","Activo", p.id+"-asset"); assetInp.style.minWidth="90px";
+      tr.appendChild(td("Activo", assetInp));
+      tr.appendChild(td("Operación", makeOperationSelect(p.operation, v=>{p.operation=v; save(); renderAll();})));
+      const qInp = makeTextInput(p.qty, v=>{p.qty=v; save(); debouncedRenderAll();}, "text","calculada auto", p.id+"-qty"); qInp.style.textAlign="right"; qInp.setAttribute("inputmode","decimal");
+      const tdQ=td("Cantidad", qInp); tdQ.style.textAlign="right"; tr.appendChild(tdQ);
+      const priceInp = makeTextInput(p.price, v=>{
+        p.price=v;
+        const q = calcQtyFromAmountPrice(p.amount, v);
+        if(q!==null) p.qty = q;
+        save(); debouncedRenderAll();
+      }, "text","0", p.id+"-price"); priceInp.style.textAlign="right"; priceInp.setAttribute("inputmode","decimal");
+      const tdP=td("Precio", priceInp); tdP.style.textAlign="right"; tr.appendChild(tdP);
+      const amtInp = makeTextInput(p.amount, v=>{
+        p.amount=v;
+        const q = calcQtyFromAmountPrice(v, p.price);
+        if(q!==null) p.qty = q;
+        save(); debouncedRenderAll();
+      }, "text","0", p.id+"-amount"); amtInp.style.textAlign="right"; amtInp.setAttribute("inputmode","decimal");
+      const tdAm=td("Total", amtInp); tdAm.style.textAlign="right"; tr.appendChild(tdAm);
+      const platInp = makeTextInput(p.platform, v=>{p.platform=v; save(); debouncedRenderAll();}, "text","Plataforma", p.id+"-plat"); platInp.style.minWidth="90px";
+      tr.appendChild(td("Plataforma", platInp));
+      const notesInp = makeTextInput(p.notes, v=>{p.notes=v; save();}, "text","Notas"); notesInp.style.minWidth="110px";
+      tr.appendChild(td("Notas", notesInp));
+      const del=document.createElement("button"); del.className="iconbtn"; del.textContent="✕";
+      del.onclick=()=>{ softDelete("invPurchases", p); };
+      tr.appendChild(td(null, del));
+      tbody.appendChild(tr);
+    });
+    table.appendChild(tbody);
+    tableWrap.appendChild(table);
+    panel.appendChild(tableWrap);
+  }
+  container.appendChild(panel);
+}
+
+/* ---------- CLIENTES ---------- */
+function renderClientes(container){
+  const panel = document.createElement("div"); panel.className="panel";
+  const head = document.createElement("div");
+  head.style.cssText="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;";
+  head.innerHTML=`<h2 style="margin:0;">Mis clientes</h2>`;
+  const addBtn = document.createElement("button");
+  addBtn.className="btn small"; addBtn.textContent="+ Nuevo cliente";
+  addBtn.onclick=()=>{
+    DATA.clients.unshift({id:uid(), name:"", contact:"", status:"Prospecto", value:"", next:"", notes:""});
+    save(); renderAll();
+  };
+  head.appendChild(addBtn);
+  panel.appendChild(head);
+
+  if(DATA.clients.length===0){
+    const e=document.createElement("div"); e.className="empty"; e.textContent="No hay clientes cargados.";
+    panel.appendChild(e);
+  } else {
+    const tableWrap = document.createElement("div"); tableWrap.style.overflowX="auto";
+    const table = document.createElement("table");
+    table.className = "rtable";
+    table.innerHTML = `<thead><tr><th>Cliente</th><th>Contacto</th><th>Estado</th><th>Valor</th><th>Próxima acción</th><th></th></tr></thead>`;
+    const tbody = document.createElement("tbody");
+    DATA.clients.forEach(c=>{
+      const tr = document.createElement("tr");
+      const nInp=makeTextInput(c.name, v=>{c.name=v; save();}, "text","Nombre"); nInp.style.fontWeight="600"; nInp.style.minWidth="130px";
+      tr.appendChild(td("Cliente", nInp));
+      const contactInp = makeTextInput(c.contact, v=>{c.contact=v; save();}, "text","Email / tel"); contactInp.style.minWidth="140px";
+      tr.appendChild(td("Contacto", contactInp));
+      tr.appendChild(td("Estado", makeSelect(c.status, ["Prospecto","Activo","Pausado","Finalizado"], v=>{c.status=v; save();})));
+      tr.appendChild(td("Valor", makeTextInput(c.value, v=>{c.value=v; save();}, "text","$")));
+      const nextInp = makeTextInput(c.next, v=>{c.next=v; save();}, "text","Ej: enviar propuesta"); nextInp.style.minWidth="160px";
+      tr.appendChild(td("Próxima acción", nextInp));
+      const del = document.createElement("button"); del.className="iconbtn"; del.textContent="✕";
+      del.onclick=()=>{ softDelete("clients", c); };
+      tr.appendChild(td(null, del));
+      tbody.appendChild(tr);
+    });
+    table.appendChild(tbody);
+    tableWrap.appendChild(table);
+    panel.appendChild(tableWrap);
+  }
+  container.appendChild(panel);
+}
+
+/* ---------- TAREAS ---------- */
+const TASK_STATUS_COLOR = { "No realizada":"red", "En proceso":"amber", "Hecha":"green" };
+function makeTaskStatusSelect(value, onChange){
+  const sel = document.createElement("select");
+  const cls = TASK_STATUS_COLOR[value] || "red";
+  sel.className = "cell-input status-select status-"+cls;
+  ["No realizada","En proceso","Hecha"].forEach(o=>{
+    const op = document.createElement("option");
+    op.value = o; op.textContent = o;
+    if(o===value) op.selected = true;
+    sel.appendChild(op);
+  });
+  sel.onchange = ()=>{
+    sel.className = "cell-input status-select status-"+(TASK_STATUS_COLOR[sel.value]||"red");
+    onChange(sel.value);
+  };
+  return sel;
+}
+
+function renderMobileTareasSummary(container){
+  const tag = document.createElement("div"); tag.className="section-tag"; tag.textContent="Resumen rápido";
+  const wrap = document.createElement("div"); wrap.className="mobile-summary"; wrap.appendChild(tag);
+  container.appendChild(wrap);
+
+  let noRealizada=0, enProceso=0, hecha=0;
+  DATA.tasks.forEach(t=>{
+    if(t.status==="Hecha") hecha++;
+    else if(t.status==="En proceso") enProceso++;
+    else noRealizada++;
+  });
+
+  const chips = document.createElement("div"); chips.className="count-chips";
+  [["No realizada",noRealizada,"red"],["En proceso",enProceso,"amber"],["Hecha",hecha,"green"]].forEach(([lbl,num,color])=>{
+    const c = document.createElement("div"); c.className="count-chip";
+    c.innerHTML = `<div class="num" style="color:var(--${color})">${num}</div><div class="lbl">${lbl}</div>`;
+    chips.appendChild(c);
+  });
+  container.appendChild(chips);
+}
+
+// Fila de tarea: el título es lo protagonista (grande, sin recortarse) y el
+// estado se elige con un solo select de color — sin fecha ni área, que no se
+// usaban. Misma fila para desktop y mobile, porque ya entra cómoda en cualquier ancho.
+function renderTaskRow(t){
+  const row = document.createElement("div");
+  row.style.cssText="display:flex;align-items:center;gap:12px;padding:11px 2px;border-bottom:1px solid var(--line);";
+
+  const titleInp = makeTextInput(t.title, v=>{t.title=v; save();}, "text", "Tarea...");
+  titleInp.style.cssText="flex:1;font-size:16px;min-width:0;border:none;background:none;padding:5px 2px;";
+  if(t.status==="Hecha"){ titleInp.style.textDecoration="line-through"; titleInp.style.color="var(--ink-soft)"; }
+  row.appendChild(titleInp);
+
+  const statusSel = makeTaskStatusSelect(t.status, v=>{
+    t.status=v; t.done=(v==="Hecha");
+    // se guarda cuándo pasó a "Hecha" para poder limpiarla sola a las 48hs;
+    // si se destilda, se cancela ese conteo.
+    if(v==="Hecha"){ if(!t.completedAt) t.completedAt = new Date().toISOString(); }
+    else { t.completedAt = null; }
+    save(); renderAll();
+  });
+  statusSel.style.cssText="width:auto;min-width:130px;flex-shrink:0;";
+  row.appendChild(statusSel);
+
+  const del = document.createElement("button"); del.className="iconbtn"; del.textContent="✕"; del.style.flexShrink="0";
+  del.onclick=()=>{ softDelete("tasks", t); };
+  row.appendChild(del);
+
+  return row;
+}
+
+// Las tareas marcadas "Hecha" se auto-eliminan (van a la Papelera, no se
+// pierden) 48hs después de haberse marcado, para no acumular una lista
+// infinita de cosas ya resueltas. Se corre cada vez que se entra a Tareas y
+// también en un intervalo de fondo, para que funcione aunque no visites la pestaña.
+const TASK_AUTOCLEAN_HOURS = 48;
+function autoDeleteStaleTasks(){
+  const cutoff = Date.now() - TASK_AUTOCLEAN_HOURS*60*60*1000;
+  let changed = false;
+  DATA.tasks = DATA.tasks.filter(t=>{
+    if(t.status==="Hecha" && t.completedAt){
+      const ts = new Date(t.completedAt).getTime();
+      if(!isNaN(ts) && ts < cutoff){
+        if(!DATA.trash) DATA.trash = [];
+        DATA.trash.unshift({ id:uid(), listKey:"tasks", item:t, deletedAt:new Date().toISOString() });
+        changed = true;
+        return false;
+      }
+    }
+    return true;
+  });
+  if(changed) save();
+  return changed;
+}
+
+function renderTareas(container){
+  DATA.tasks.forEach(t=>{
+    if(t.status===undefined) t.status = t.done ? "Hecha" : "No realizada";
+    // migración: tareas que ya estaban en "Hecha" antes de esta función
+    // arrancan su cuenta regresiva de 48hs recién ahora, no de golpe.
+    if(t.status==="Hecha" && t.completedAt===undefined) t.completedAt = new Date().toISOString();
+  });
+  autoDeleteStaleTasks();
+
+  if(isMobileView()) renderMobileTareasSummary(container);
+
+  const panel = document.createElement("div"); panel.className="panel";
+  const head = document.createElement("div");
+  head.style.cssText="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;";
+  head.innerHTML=`<h2 style="margin:0;">Tareas pendientes</h2>`;
+  const addBtn = document.createElement("button");
+  addBtn.className="btn small"; addBtn.textContent="+ Nueva tarea";
+  addBtn.onclick=()=>{
+    DATA.tasks.unshift({id:uid(), title:"", status:"No realizada", done:false});
+    save(); renderAll();
+  };
+  head.appendChild(addBtn);
+  panel.appendChild(head);
+
+  if(DATA.tasks.length===0){
+    const e=document.createElement("div"); e.className="empty"; e.textContent="No tenés tareas cargadas.";
+    panel.appendChild(e);
+  } else {
+    const STATUS_ORDER = {"No realizada":0,"En proceso":1,"Hecha":2};
+    const sorted = [...DATA.tasks].sort((a,b)=> (STATUS_ORDER[a.status]??0) - (STATUS_ORDER[b.status]??0));
+    sorted.forEach(t=>{
+      panel.appendChild(renderTaskRow(t));
+    });
+  }
+  container.appendChild(panel);
+}
+
+/* ---------- CALENDARIO ---------- */
+let calMonthOffset = 0;
+const DOW = ["Lun","Mar","Mié","Jue","Vie","Sáb","Dom"];
+const GCAL_TOOL = "mcp__6194127a-c272-4037-9d83-e12070d8385a__list_events";
+
+let gcalEvents = null;   // null = todavía no cargado
+let gcalLoading = false;
+let gcalError = null;
+
+async function fetchGCalEvents(){
+  if(!window.cowork || !window.cowork.callMcpTool) return;
+  gcalLoading = true; gcalError = null;
+  renderAll();
+  try{
+    const now = new Date();
+    const end = new Date(now.getTime() + 1000*60*60*24*60); // próximos 60 días
+    const res = await window.cowork.callMcpTool(GCAL_TOOL, {
+      startTime: now.toISOString(),
+      endTime: end.toISOString(),
+      pageSize: 20,
+      orderBy: "startTime"
+    });
+    if(res.isError) throw new Error("tool error");
+    const data = res.structuredContent ?? JSON.parse(res.content[0].text);
+    gcalEvents = (data.events||[]).map(ev=>{
+      const isAllDay = !!(ev.start && ev.start.date);
+      const dateStr = isAllDay
+        ? String(ev.start.date).slice(0,10)
+        : (ev.start && ev.start.dateTime ? String(ev.start.dateTime).slice(0,10) : null);
+      const timeStr = (!isAllDay && ev.start && ev.start.dateTime)
+        ? new Date(ev.start.dateTime).toLocaleTimeString("es-AR",{hour:"2-digit",minute:"2-digit"})
+        : null;
+      return { id:ev.id, title:ev.summary || "(Sin título)", date:dateStr, time:timeStr, link:ev.htmlLink };
+    }).filter(e=>e.date);
+  }catch(e){
+    console.warn("No se pudo cargar Google Calendar", e);
+    gcalError = String(e);
+    gcalEvents = [];
+  }
+  gcalLoading = false;
+  renderAll();
+}
+
+function renderCalendario(container){
+  const now = new Date();
+  const view = new Date(now.getFullYear(), now.getMonth()+calMonthOffset, 1);
+  const year = view.getFullYear(), month = view.getMonth();
+  const monthLabel = view.toLocaleDateString("es-AR",{month:"long", year:"numeric"});
+
+  // panel: google calendar preview
+  const gPanel = document.createElement("div"); gPanel.className="panel";
+  const gHead = document.createElement("div");
+  gHead.style.cssText = "display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; margin-bottom:8px;";
+  const canUseGCal = !!(window.cowork && window.cowork.callMcpTool);
+  let statusTag = "";
+  if(!canUseGCal){
+    statusTag = `<span class="tag grey">No disponible en esta vista</span>`;
+  } else if(gcalLoading){
+    statusTag = `<span class="tag amber">Cargando…</span>`;
+  } else if(gcalError){
+    statusTag = `<span class="tag red">Error al cargar</span>`;
+  } else if(gcalEvents){
+    statusTag = `<span class="tag green">Conectado</span>`;
+  } else {
+    statusTag = `<span class="tag amber">Conectando…</span>`;
+  }
+  gHead.innerHTML = `
+    <div>
+      <h2 style="margin:0 0 4px;">Google Calendar</h2>
+      <div style="font-size:12.5px; color:var(--ink-soft);">
+        Agendá los eventos desde Google Calendar — acá los previsualizás.
+      </div>
+    </div>`;
+  const gRight = document.createElement("div"); gRight.style.cssText="display:flex; align-items:center; gap:8px;";
+  gRight.innerHTML = statusTag;
+  if(canUseGCal){
+    const refreshBtn = document.createElement("button");
+    refreshBtn.className = "btn ghost small"; refreshBtn.textContent = "↻ Actualizar";
+    refreshBtn.onclick = ()=>fetchGCalEvents();
+    gRight.appendChild(refreshBtn);
+  }
+  gHead.appendChild(gRight);
+  gPanel.appendChild(gHead);
+
+  if(!canUseGCal){
+    const e = document.createElement("div"); e.className="empty";
+    e.textContent = "La vista previa en vivo de Google Calendar funciona dentro de Cowork. En esta página web pública, usá la sección \"Próximos\" de más abajo para tus recordatorios.";
+    gPanel.appendChild(e);
+  } else if(gcalEvents===null){
+    if(!gcalLoading) fetchGCalEvents();
+    const e = document.createElement("div"); e.className="empty"; e.textContent="Cargando tus próximos eventos…";
+    gPanel.appendChild(e);
+  } else if(gcalError){
+    const e = document.createElement("div"); e.className="empty"; e.textContent="No se pudieron cargar los eventos. Probá actualizar.";
+    gPanel.appendChild(e);
+  } else if(gcalEvents.length===0){
+    const e = document.createElement("div"); e.className="empty"; e.textContent="No tenés eventos próximos en Google Calendar.";
+    gPanel.appendChild(e);
+  } else {
+    gcalEvents.slice(0,8).forEach(ev=>{
+      const row = document.createElement("a"); row.className="event-row"; row.href=ev.link||"#"; row.target="_blank"; row.rel="noopener";
+      row.style.cssText = "text-decoration:none; color:inherit; cursor:pointer;";
+      const d = ev.date ? new Date(ev.date+"T00:00:00") : null;
+      const dateBox = document.createElement("div"); dateBox.className="event-date";
+      dateBox.innerHTML = d ? `<div>${d.toLocaleDateString("es-AR",{month:"short"}).replace(".","")}</div><div class="d">${d.getDate()}</div>` : `<div class="d">—</div>`;
+      row.appendChild(dateBox);
+      const mid = document.createElement("div"); mid.style.flex="1"; mid.style.minWidth="0";
+      mid.innerHTML = `<div style="font-weight:600; font-size:13px;">${ev.title}</div><div style="font-size:11.5px; color:var(--ink-soft);">${ev.time ? ev.time : "Todo el día"}</div>`;
+      row.appendChild(mid);
+      gPanel.appendChild(row);
+    });
+  }
+  container.appendChild(gPanel);
+
+  // panel: month grid
+  const calPanel = document.createElement("div"); calPanel.className="panel";
+  const head = document.createElement("div");
+  head.style.cssText = "display:flex; align-items:center; justify-content:space-between; margin-bottom:6px;";
+  const navWrap = document.createElement("div"); navWrap.style.cssText="display:flex; align-items:center; gap:10px;";
+  const prevBtn = document.createElement("button"); prevBtn.className="btn ghost small"; prevBtn.textContent="‹";
+  prevBtn.onclick = ()=>{ calMonthOffset--; renderAll(); };
+  const nextBtn = document.createElement("button"); nextBtn.className="btn ghost small"; nextBtn.textContent="›";
+  nextBtn.onclick = ()=>{ calMonthOffset++; renderAll(); };
+  const label = document.createElement("h2"); label.style.margin="0"; label.style.textTransform="capitalize";
+  label.textContent = monthLabel;
+  navWrap.appendChild(prevBtn); navWrap.appendChild(label); navWrap.appendChild(nextBtn);
+  head.appendChild(navWrap);
+  if(calMonthOffset!==0){
+    const todayBtn = document.createElement("button"); todayBtn.className="btn ghost small"; todayBtn.textContent="Hoy";
+    todayBtn.onclick=()=>{ calMonthOffset=0; renderAll(); };
+    head.appendChild(todayBtn);
+  }
+  calPanel.appendChild(head);
+
+  const grid = document.createElement("div"); grid.className="cal-grid";
+  DOW.forEach(d=>{ const e=document.createElement("div"); e.className="cal-dow"; e.textContent=d; grid.appendChild(e); });
+
+  const firstDay = new Date(year, month, 1);
+  let startOffset = firstDay.getDay()-1; if(startOffset<0) startOffset=6; // week starts Monday
+  const daysInMonth = new Date(year, month+1, 0).getDate();
+
+  const eventsByDate = {};
+  DATA.events.forEach(ev=>{ if(ev.date){ (eventsByDate[ev.date] ||= []).push(ev); } });
+  (gcalEvents||[]).forEach(ev=>{ if(ev.date){ (eventsByDate[ev.date] ||= []).push(ev); } });
+
+  for(let i=0;i<startOffset;i++){ const e=document.createElement("div"); e.className="cal-cell empty"; grid.appendChild(e); }
+  for(let day=1; day<=daysInMonth; day++){
+    const cell = document.createElement("div"); cell.className="cal-cell";
+    const iso = `${year}-${String(month+1).padStart(2,"0")}-${String(day).padStart(2,"0")}`;
+    if(iso===todayISO()) cell.classList.add("today");
+    cell.innerHTML = `<div class="n">${day}</div>`;
+    if(eventsByDate[iso]) cell.appendChild(Object.assign(document.createElement("div"), {className:"cal-dot", title:eventsByDate[iso].map(e=>e.title).join(", ")}));
+    grid.appendChild(cell);
+  }
+  calPanel.appendChild(grid);
+  container.appendChild(calPanel);
+
+  // panel: recordatorios / próximos
+  const evPanel = document.createElement("div"); evPanel.className="panel";
+  const evHead = document.createElement("div");
+  evHead.style.cssText="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;";
+  evHead.innerHTML=`<h2 style="margin:0;">Próximos</h2>`;
+  const addBtn = document.createElement("button");
+  addBtn.className="btn small"; addBtn.textContent="+ Nuevo recordatorio";
+  addBtn.onclick=()=>{
+    DATA.events.unshift({id:uid(), date:todayISO(), title:"", notes:""});
+    save(); renderAll();
+  };
+  evHead.appendChild(addBtn);
+  evPanel.appendChild(evHead);
+
+  const sorted = [...DATA.events].sort((a,b)=> (a.date||"").localeCompare(b.date||""));
+  if(sorted.length===0){
+    const e=document.createElement("div"); e.className="empty"; e.textContent="No tenés recordatorios cargados.";
+    evPanel.appendChild(e);
+  } else {
+    sorted.forEach(ev=>{
+      const row = document.createElement("div"); row.className="event-row";
+      const d = ev.date ? new Date(ev.date+"T00:00:00") : null;
+      const dateBox = document.createElement("div"); dateBox.className="event-date";
+      dateBox.innerHTML = d ? `<div>${d.toLocaleDateString("es-AR",{month:"short"}).replace(".","")}</div><div class="d">${d.getDate()}</div>` : `<div class="d">—</div>`;
+      row.appendChild(dateBox);
+
+      const mid = document.createElement("div"); mid.style.flex="1"; mid.style.minWidth="0";
+      const titleInp = makeTextInput(ev.title, v=>{ev.title=v; save();}, "text", "Título", ev.id+"-title");
+      titleInp.style.fontWeight="600"; titleInp.style.marginBottom="4px";
+      mid.appendChild(titleInp);
+      const dateInp = makeTextInput(ev.date, v=>{ev.date=v; save(); debouncedRenderAll();}, "date", "", ev.id+"-date");
+      dateInp.style.maxWidth="150px";
+      mid.appendChild(dateInp);
+      row.appendChild(mid);
+
+      const del = document.createElement("button"); del.className="iconbtn"; del.textContent="✕";
+      del.onclick=()=>{ softDelete("events", ev); };
+      row.appendChild(del);
+      evPanel.appendChild(row);
+    });
+  }
+  container.appendChild(evPanel);
+}
+
+/* ---------- ESTADISTICAS ---------- */
+function renderEstadisticas(container){
+  const panel = document.createElement("div"); panel.className="panel";
+  const head = document.createElement("div");
+  head.style.cssText="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;";
+  head.innerHTML=`<h2 style="margin:0;">Métricas clave</h2>`;
+  const addBtn = document.createElement("button");
+  addBtn.className="btn small"; addBtn.textContent="+ Nueva métrica";
+  addBtn.onclick=()=>{
+    DATA.stats.push({id:uid(), label:"", value:""});
+    save(); renderAll();
+  };
+  head.appendChild(addBtn);
+  panel.appendChild(head);
+
+  const grid = document.createElement("div"); grid.className="kpis";
+  DATA.stats.forEach(s=>{
+    const k = document.createElement("div"); k.className="kpi";
+    const rm = document.createElement("button"); rm.className="rm"; rm.textContent="✕";
+    rm.onclick=()=>{ softDelete("stats", s); };
+    k.appendChild(rm);
+    const lbl = document.createElement("input"); lbl.className="cell-input"; lbl.style.fontSize="11px"; lbl.style.textTransform="uppercase"; lbl.style.color="var(--ink-soft)";
+    lbl.value = s.label; lbl.placeholder="Nombre de la métrica";
+    lbl.oninput=()=>{ s.label=lbl.value; save(); };
+    k.appendChild(lbl);
+    const val = document.createElement("input"); val.className="cell-input"; val.style.fontSize="21px"; val.style.fontWeight="700"; val.style.marginTop="4px";
+    val.value = s.value; val.placeholder="0";
+    val.oninput=()=>{ s.value=val.value; save(); };
+    k.appendChild(val);
+    grid.appendChild(k);
+  });
+  panel.appendChild(grid);
+  if(DATA.stats.length===0){
+    const e=document.createElement("div"); e.className="empty"; e.textContent="Agregá tus primeras métricas.";
+    panel.appendChild(e);
+  }
+  container.appendChild(panel);
+}
+
+/* ---------- CONTENIDO (publicado): Reels/Carruseles + Historias ---------- */
+const CONTENT_FORMATS = ["Reel","Carrusel","Otro"];
+const CONTENT_CATEGORIES = ["Reflexión","Conexión","Opinión","Orgánico","Backstage","Pov","Antes/Después","Exposición","Cinematic","Aprendizaje","Recomendaciones","Valor","Creatividad/Proceso","Otro"];
+const CONTENT_STATUS_COLOR = {"Realizado":"green","Prueba":"amber","No subido":"red"};
+
+function makeContentStatusSelect(value, onChange){
+  const sel = document.createElement("select");
+  const cls = CONTENT_STATUS_COLOR[value] || "amber";
+  sel.className = "cell-input status-select status-"+cls;
+  Object.keys(CONTENT_STATUS_COLOR).forEach(o=>{
+    const op = document.createElement("option");
+    op.value = o; op.textContent = o;
+    if(o===value) op.selected = true;
+    sel.appendChild(op);
+  });
+  sel.onchange = ()=>{
+    const newCls = CONTENT_STATUS_COLOR[sel.value] || "amber";
+    sel.className = "cell-input status-select status-"+newCls;
+    onChange(sel.value);
+  };
+  return sel;
+}
+
+function makeUploadedSelect(value, onChange){
+  const sel = document.createElement("select");
+  const cls = value==="Sí" ? "green" : "grey";
+  sel.className = "cell-input status-select status-"+cls;
+  ["Sí","No"].forEach(o=>{
+    const op = document.createElement("option");
+    op.value = o; op.textContent = o;
+    if(o===value) op.selected = true;
+    sel.appendChild(op);
+  });
+  sel.onchange = ()=>{
+    sel.className = "cell-input status-select status-"+(sel.value==="Sí"?"green":"grey");
+    onChange(sel.value);
+  };
+  return sel;
+}
+
+function renderMobileContenidoSummary(container){
+  const tag = document.createElement("div"); tag.className="section-tag"; tag.textContent="Resumen rápido";
+  const wrap = document.createElement("div"); wrap.className="mobile-summary"; wrap.appendChild(tag);
+  container.appendChild(wrap);
+
+  const now = new Date();
+  const curMonthKey = now.getFullYear()+"-"+String(now.getMonth()+1).padStart(2,"0");
+  const isThisMonth = (dateStr)=> !!dateStr && dateStr.slice(0,7)===curMonthKey;
+
+  const reelsPending = DATA.content.filter(c=>(c.status||"Prueba")==="No subido").length;
+  const reelsPublishedMonth = DATA.content.filter(c=>(c.status||"Prueba")==="Realizado" && isThisMonth(c.date)).length;
+  const storiesPending = DATA.stories.filter(s=>(s.uploaded||"No")==="No").length;
+  const storiesPublishedMonth = DATA.stories.filter(s=>(s.uploaded||"No")==="Sí" && isThisMonth(s.date)).length;
+
+  function miniCard(title, pendingLbl, pendingVal, doneLbl, doneVal){
+    const c = document.createElement("div"); c.className="panel"; c.style.marginBottom="0";
+    c.innerHTML = `<h2 style="margin:0 0 10px; font-size:13.5px;">${title}</h2>
+      <div style="display:flex; gap:10px;">
+        <div style="flex:1;"><div style="font-size:11px;color:var(--ink-soft);">${pendingLbl}</div><div style="font-size:19px;font-weight:700;color:var(--ink);">${pendingVal}</div></div>
+        <div style="flex:1;"><div style="font-size:11px;color:var(--ink-soft);">${doneLbl}</div><div style="font-size:19px;font-weight:700;color:var(--green);">${doneVal}</div></div>
+      </div>`;
+    return c;
+  }
+  const cardsRow = document.createElement("div");
+  cardsRow.style.cssText="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:14px;";
+  cardsRow.appendChild(miniCard("Reels / Carruseles","Sin subir",reelsPending,"Public. este mes",reelsPublishedMonth));
+  cardsRow.appendChild(miniCard("Historias","Sin subir",storiesPending,"Public. este mes",storiesPublishedMonth));
+  container.appendChild(cardsRow);
+
+  // estado general del plan de contenido
+  const planTotal = DATA.contentPlan.length;
+  const planPublished = DATA.contentPlan.filter(c=>c.status==="Publicado").length;
+  if(planTotal>0){
+    const pct = Math.round(planPublished/planTotal*100);
+    const panel = document.createElement("div"); panel.className="panel";
+    panel.innerHTML = `<h2 style="margin:0 0 10px;">Estado general del plan</h2>
+      <div style="display:flex; align-items:center; gap:14px;">
+        <div style="font-size:26px; font-weight:700; color:var(--accent-1); flex-shrink:0;">${pct}%</div>
+        <div style="flex:1;">
+          <div class="progress-wrap"><div class="progress-bar" style="width:${pct}%;"></div></div>
+          <div style="font-size:11.5px;color:var(--ink-soft);margin-top:6px;">${planPublished} publicadas de ${planTotal} planificadas</div>
+        </div>
+      </div>`;
+    container.appendChild(panel);
+  }
+
+  // contenido reciente
+  const recent = [...DATA.content].filter(c=>c.date).sort((a,b)=>b.date.localeCompare(a.date)).slice(0,4);
+  if(recent.length){
+    const listPanel = document.createElement("div"); listPanel.className="panel";
+    listPanel.innerHTML = `<h2 style="margin:0 0 6px;">Contenido reciente</h2>`;
+    recent.forEach(c=>{
+      const row = document.createElement("div"); row.className="mini-card-row";
+      row.innerHTML = `<div><div class="title">${c.tema||"(sin tema)"}</div><div class="meta">${c.format||"Reel"} · ${fmtDateNice(c.date)}</div></div>
+        <span class="tag ${CONTENT_STATUS_COLOR[c.status]||"amber"}">${c.status||"Prueba"}</span>`;
+      listPanel.appendChild(row);
+    });
+    container.appendChild(listPanel);
+  }
+}
+
+function renderContenido(container){
+  if(isMobileView()) renderMobileContenidoSummary(container);
+  renderReelsPanel(container);
+  renderHistoriasPanel(container);
+}
+
+function renderReelsPanel(container){
+  const panel = document.createElement("div"); panel.className="panel";
+  const head = document.createElement("div");
+  head.style.cssText="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;";
+  head.innerHTML=`<h2 style="margin:0;">Reels / Carruseles</h2>`;
+  const addBtn = document.createElement("button");
+  addBtn.className="btn small"; addBtn.textContent="+ Nueva pieza";
+  addBtn.onclick=()=>{
+    DATA.content.unshift({
+      id:uid(), date:todayISO(), format:"Reel", category:"Reflexión", tema:"", music:"", hook:"",
+      views:"", likes:"", saves:"", shares:"", comments:"", newFollowers:"", status:"Prueba", notes:""
+    });
+    save(); renderAll();
+  };
+  head.appendChild(addBtn);
+  panel.appendChild(head);
+
+  if(DATA.content.length===0){
+    const e=document.createElement("div"); e.className="empty"; e.textContent="Todavía no cargaste reels ni carruseles.";
+    panel.appendChild(e);
+  } else {
+    const tableWrap = document.createElement("div"); tableWrap.style.overflowX="auto";
+    const table = document.createElement("table");
+    table.className = "rtable";
+    table.innerHTML = `<thead><tr>
+      <th>Fecha</th><th>Tipo</th><th>Categoría</th><th>Tema</th><th>Música</th><th>Hook</th>
+      <th style="text-align:right;">Vistas</th><th style="text-align:right;">Likes</th><th style="text-align:right;">Guardados</th>
+      <th style="text-align:right;">Compartidos</th><th style="text-align:right;">Comentarios</th><th style="text-align:right;">Nuevos seg.</th>
+      <th>Estado</th><th>Notas</th><th></th>
+    </tr></thead>`;
+    const tbody = document.createElement("tbody");
+    DATA.content.forEach(c=>{
+      if(c.status===undefined) c.status = "Prueba";
+      const tr = document.createElement("tr");
+      const mk = (label,val,onCh,ph,w)=>{ const cell=td(label, makeTextInput(val,onCh,"text",ph||"")); cell.querySelector("input").style.minWidth=(w||110)+"px"; return cell; };
+      const mkNum = (label,val,onCh)=>{ const inp=makeTextInput(val,onCh,"text",""); inp.setAttribute("inputmode","decimal"); inp.style.textAlign="right"; inp.style.minWidth="60px"; const cell=td(label, inp); cell.style.textAlign="right"; return cell; };
+
+      tr.appendChild(td("Fecha", makeTextInput(c.date, v=>{c.date=v; save();}, "date")));
+      tr.appendChild(td("Tipo", makeSelect(c.format||"Reel", CONTENT_FORMATS, v=>{c.format=v; save();})));
+      tr.appendChild(td("Categoría", makeSelect(c.category||"Reflexión", CONTENT_CATEGORIES, v=>{c.category=v; save();})));
+      tr.appendChild(mk("Tema", c.tema, v=>{c.tema=v; save();}, "Tema", 180));
+      tr.appendChild(mk("Música", c.music, v=>{c.music=v; save();}, "Música", 100));
+      tr.appendChild(mk("Hook", c.hook, v=>{c.hook=v; save();}, "Hook", 150));
+      tr.appendChild(mkNum("Vistas", c.views, v=>{c.views=v; save();}));
+      tr.appendChild(mkNum("Likes", c.likes, v=>{c.likes=v; save();}));
+      tr.appendChild(mkNum("Guardados", c.saves, v=>{c.saves=v; save();}));
+      tr.appendChild(mkNum("Compartidos", c.shares, v=>{c.shares=v; save();}));
+      tr.appendChild(mkNum("Comentarios", c.comments, v=>{c.comments=v; save();}));
+      tr.appendChild(mkNum("Nuevos seg.", c.newFollowers, v=>{c.newFollowers=v; save();}));
+      tr.appendChild(td("Estado", makeContentStatusSelect(c.status, v=>{c.status=v; save();})));
+      tr.appendChild(mk("Notas", c.notes, v=>{c.notes=v; save();}, "Notas", 140));
+      const del=document.createElement("button"); del.className="iconbtn"; del.textContent="✕";
+      del.onclick=()=>{ softDelete("content", c); };
+      tr.appendChild(td(null, del));
+      tbody.appendChild(tr);
+    });
+    table.appendChild(tbody);
+    tableWrap.appendChild(table);
+    panel.appendChild(tableWrap);
+  }
+  container.appendChild(panel);
+}
+
+function renderHistoriasPanel(container){
+  const panel = document.createElement("div"); panel.className="panel";
+  const head = document.createElement("div");
+  head.style.cssText="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;";
+  head.innerHTML=`<h2 style="margin:0;">Historias</h2>`;
+  const addBtn = document.createElement("button");
+  addBtn.className="btn small"; addBtn.textContent="+ Nueva historia";
+  addBtn.onclick=()=>{
+    DATA.stories.unshift({id:uid(), date:todayISO(), tema:"", slides:["","","","",""], uploaded:"No", views:"", notes:""});
+    save(); renderAll();
+  };
+  head.appendChild(addBtn);
+  panel.appendChild(head);
+
+  if(DATA.stories.length===0){
+    const e=document.createElement("div"); e.className="empty"; e.textContent="Todavía no cargaste historias.";
+    panel.appendChild(e);
+  }
+
+  DATA.stories.forEach(s=>{
+    if(!Array.isArray(s.slides)) s.slides = ["","","","",""];
+    while(s.slides.length<5) s.slides.push("");
+
+    const card = document.createElement("div");
+    card.style.cssText="border:1px solid var(--line);border-radius:10px;padding:12px 14px;margin-bottom:10px;";
+
+    const top = document.createElement("div");
+    top.style.cssText="display:flex;gap:10px;align-items:center;margin-bottom:10px;flex-wrap:wrap;";
+    const dateInp = makeTextInput(s.date, v=>{s.date=v; save();}, "date"); dateInp.style.maxWidth="150px";
+    top.appendChild(dateInp);
+    const temaInp = makeTextInput(s.tema, v=>{s.tema=v; save();}, "text", "Tema");
+    temaInp.style.flex="1"; temaInp.style.fontWeight="600";
+    top.appendChild(temaInp);
+    const upWrap = document.createElement("div"); upWrap.style.minWidth="90px";
+    upWrap.appendChild(makeUploadedSelect(s.uploaded||"No", v=>{s.uploaded=v; save();}));
+    top.appendChild(upWrap);
+    const viewsInp = makeTextInput(s.views, v=>{s.views=v; save();}, "text", "Views");
+    viewsInp.setAttribute("inputmode","decimal"); viewsInp.style.maxWidth="100px";
+    top.appendChild(viewsInp);
+    const del = document.createElement("button"); del.className="iconbtn"; del.textContent="✕";
+    del.onclick=()=>{ softDelete("stories", s); };
+    top.appendChild(del);
+    card.appendChild(top);
+
+    const slidesGrid = document.createElement("div");
+    slidesGrid.style.cssText="display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:8px; margin-bottom:8px;";
+    s.slides.forEach((txt,i)=>{
+      const wrap = document.createElement("div");
+      const lab = document.createElement("div"); lab.style.cssText="font-size:11px;color:var(--ink-soft);margin-bottom:3px;"; lab.textContent="Historia "+(i+1);
+      wrap.appendChild(lab);
+      const ta = document.createElement("textarea");
+      ta.style.minHeight="60px"; ta.placeholder="Texto / idea de esta historia...";
+      ta.value = txt||"";
+      ta.oninput = ()=>{ s.slides[i]=ta.value; save(); };
+      wrap.appendChild(ta);
+      slidesGrid.appendChild(wrap);
+    });
+    card.appendChild(slidesGrid);
+
+    const notes = document.createElement("textarea");
+    notes.placeholder="Notas..."; notes.style.minHeight="46px";
+    notes.value = s.notes||"";
+    notes.oninput = ()=>{ s.notes=notes.value; save(); };
+    card.appendChild(notes);
+
+    panel.appendChild(card);
+  });
+  container.appendChild(panel);
+}
+
+/* ---------- INSTAGRAM (insights derivados del contenido cargado) ---------- */
+let igCharts = [];
+function destroyIgCharts(){ igCharts.forEach(c=>{ try{c.destroy();}catch(e){} }); igCharts=[]; }
+function numOrNull(v){
+  if(v===undefined||v===null||v===""||v==="-") return null;
+  const n = Number(v);
+  return isNaN(n) ? null : n;
+}
+const CHART_AXIS_OPTS = {
+  ticks:{ color:"#92929d", font:{size:9.5} },
+  grid:{ color:"rgba(255,255,255,.05)" }
+};
+
+function renderInstagram(container){
+  // panel de estado de conexión
+  const gPanel = document.createElement("div"); gPanel.className="panel";
+  gPanel.innerHTML = `
+    <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap;">
+      <div>
+        <h2 style="margin:0 0 4px;">Instagram</h2>
+        <div style="font-size:12.5px; color:var(--ink-soft); max-width:560px;">
+          No hay una forma simple de conectar tu cuenta personal de Instagram directamente (Meta no lo permite sin una cuenta business + herramientas de terceros).
+          Mientras tanto, este panel analiza automáticamente las métricas que cargás en la pestaña Contenido para mostrarte qué está funcionando.
+        </div>
+      </div>
+      <span class="tag amber">Análisis desde Contenido</span>
+    </div>`;
+  container.appendChild(gPanel);
+
+  const items = DATA.content.filter(c=>numOrNull(c.views)!==null);
+  if(items.length===0){
+    const e = document.createElement("div"); e.className="panel";
+    e.innerHTML = `<div class="empty">Todavía no hay piezas con vistas cargadas. Sumá datos en la pestaña Contenido (Reels/Carruseles) y acá vas a ver el análisis automáticamente.</div>`;
+    container.appendChild(e);
+    return;
+  }
+
+  const sum = (key)=>items.reduce((a,c)=>a+(numOrNull(c[key])||0),0);
+  const totalViews = sum("views"), totalLikes = sum("likes"), totalSaves = sum("saves"), totalShares = sum("shares"), totalComments = sum("comments");
+  const withEngagement = items.filter(c=>numOrNull(c.views)>0);
+  const avgEngagement = withEngagement.length
+    ? withEngagement.reduce((a,c)=>a+(((numOrNull(c.likes)||0)+(numOrNull(c.comments)||0)+(numOrNull(c.saves)||0)+(numOrNull(c.shares)||0))/numOrNull(c.views)*100),0)/withEngagement.length
+    : 0;
+  const best = [...items].sort((a,b)=>(numOrNull(b.views)||0)-(numOrNull(a.views)||0))[0];
+
+  destroyIgCharts();
+
+  const kpis = document.createElement("div"); kpis.className="kpis";
+  [
+    ["Vistas totales", fmtMoney(totalViews)],
+    ["Likes totales", fmtMoney(totalLikes)],
+    ["Engagement promedio", avgEngagement.toFixed(1)+"%"],
+    ["Mejor pieza", best ? (best.tema||"(sin tema)").slice(0,28) : "—"],
+  ].forEach(([lbl,val])=>{
+    const k=document.createElement("div"); k.className="kpi";
+    k.innerHTML = `<div class="lbl">${lbl}</div><div class="val" style="font-size:${lbl==="Mejor pieza"?"15px":"21px"};">${val}</div>`;
+    kpis.appendChild(k);
+  });
+  container.appendChild(kpis);
+
+  // gráfico: vistas a lo largo del tiempo
+  const sortedByDate = [...items].filter(c=>c.date).sort((a,b)=>a.date.localeCompare(b.date));
+  if(sortedByDate.length>1){
+    const trendPanel = document.createElement("div"); trendPanel.className="panel";
+    trendPanel.innerHTML = `<h2 style="margin:0 0 12px;">Vistas por publicación a lo largo del tiempo</h2>`;
+    const wrap = document.createElement("div"); wrap.style.cssText="height:220px; position:relative;";
+    const canvas = document.createElement("canvas"); wrap.appendChild(canvas);
+    trendPanel.appendChild(wrap);
+    container.appendChild(trendPanel);
+    if(window.Chart){
+      igCharts.push(new Chart(canvas.getContext("2d"), {
+        type:"line",
+        data:{
+          labels: sortedByDate.map(c=>c.date),
+          datasets:[{
+            label:"Vistas", data: sortedByDate.map(c=>numOrNull(c.views)||0),
+            borderColor:"#22c55e", backgroundColor:"rgba(34,197,94,.18)", fill:true, tension:.3, pointRadius:2
+          }]
+        },
+        options:{ responsive:true, maintainAspectRatio:false,
+          plugins:{ legend:{display:false} },
+          scales:{ x:CHART_AXIS_OPTS, y:CHART_AXIS_OPTS }
+        }
+      }));
+    }
+  }
+
+  // gráfico: promedio de vistas por categoría
+  const byCat = {};
+  items.forEach(c=>{
+    const cat = (c.category||"Sin categoría").trim() || "Sin categoría";
+    if(!byCat[cat]) byCat[cat] = {sum:0,count:0};
+    byCat[cat].sum += numOrNull(c.views)||0;
+    byCat[cat].count++;
+  });
+  const catLabels = Object.keys(byCat);
+  if(catLabels.length>0){
+    const catPanel = document.createElement("div"); catPanel.className="panel";
+    catPanel.innerHTML = `<h2 style="margin:0 0 12px;">Promedio de vistas por categoría</h2>`;
+    const wrap = document.createElement("div"); wrap.style.cssText="height:220px; position:relative;";
+    const canvas = document.createElement("canvas"); wrap.appendChild(canvas);
+    catPanel.appendChild(wrap);
+    container.appendChild(catPanel);
+    if(window.Chart){
+      igCharts.push(new Chart(canvas.getContext("2d"), {
+        type:"bar",
+        data:{
+          labels: catLabels,
+          datasets:[{ data: catLabels.map(c=>Math.round(byCat[c].sum/byCat[c].count)), backgroundColor:"#0ea5e9", borderRadius:6 }]
+        },
+        options:{ responsive:true, maintainAspectRatio:false,
+          plugins:{ legend:{display:false} },
+          scales:{ x:CHART_AXIS_OPTS, y:CHART_AXIS_OPTS }
+        }
+      }));
+    }
+  }
+
+  // top / bottom performers
+  const ranked = [...items].sort((a,b)=>(numOrNull(b.views)||0)-(numOrNull(a.views)||0));
+  const top5 = ranked.slice(0,5);
+  const bottom5 = ranked.slice(-5).reverse();
+
+  function rankPanel(title, list, colorVar){
+    const p = document.createElement("div"); p.className="panel";
+    p.innerHTML = `<h2 style="margin:0 0 10px;">${title}</h2>`;
+    if(list.length===0){
+      const e=document.createElement("div"); e.className="empty"; e.textContent="Sin datos."; p.appendChild(e);
+    } else {
+      list.forEach(c=>{
+        const row = document.createElement("div");
+        row.style.cssText="display:flex; justify-content:space-between; align-items:center; gap:10px; padding:7px 2px; border-bottom:1px solid var(--line);";
+        row.innerHTML = `
+          <div style="min-width:0;">
+            <div style="font-size:13px; font-weight:600; color:var(--ink); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:280px;">${c.tema||"(sin tema)"}</div>
+            <div style="font-size:11px; color:var(--ink-soft);">${c.category||"—"} · ${c.date||"—"}</div>
+          </div>
+          <div style="font-weight:700; color:var(--${colorVar}); white-space:nowrap;">${fmtMoney(numOrNull(c.views)||0)} vistas</div>
+        `;
+        p.appendChild(row);
+      });
+    }
+    container.appendChild(p);
+  }
+  rankPanel("Lo que mejor funcionó", top5, "green");
+  rankPanel("Lo que menos funcionó", bottom5, "red");
+}
+
+/* ---------- PLAN DE CONTENIDO ---------- */
+function renderPlanContenido(container){
+  const panel = document.createElement("div"); panel.className="panel";
+  const head = document.createElement("div");
+  head.style.cssText="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;";
+  head.innerHTML=`<h2 style="margin:0;">Plan de contenido</h2>`;
+  const addBtn = document.createElement("button");
+  addBtn.className="btn small"; addBtn.textContent="+ Nueva idea";
+  addBtn.onclick=()=>{
+    DATA.contentPlan.unshift({id:uid(), title:"", platform:"Instagram", date:"", status:"Idea", notes:""});
+    save(); renderAll();
+  };
+  head.appendChild(addBtn);
+  panel.appendChild(head);
+
+  if(DATA.contentPlan.length===0){
+    const e=document.createElement("div"); e.className="empty"; e.textContent="No hay ideas en el plan todavía.";
+    panel.appendChild(e);
+  } else {
+    const tableWrap = document.createElement("div"); tableWrap.style.overflowX="auto";
+    const table = document.createElement("table");
+    table.className = "rtable";
+    table.innerHTML = `<thead><tr><th>Idea / título</th><th>Plataforma</th><th>Fecha planeada</th><th>Estado</th><th>Notas</th><th></th></tr></thead>`;
+    const tbody = document.createElement("tbody");
+    DATA.contentPlan.forEach(c=>{
+      const tr = document.createElement("tr");
+      const ideaInp = makeTextInput(c.title, v=>{c.title=v; save();}, "text","Idea"); ideaInp.style.minWidth="170px";
+      tr.appendChild(td("Idea", ideaInp));
+      tr.appendChild(td("Plataforma", makeSelect(c.platform, ["Instagram","YouTube","TikTok","Blog","Newsletter","LinkedIn","X","Otro"], v=>{c.platform=v; save();})));
+      tr.appendChild(td("Fecha planeada", makeTextInput(c.date, v=>{c.date=v; save();}, "date")));
+      tr.appendChild(td("Estado", makeSelect(c.status, ["Idea","Guion","Grabado","Editado","Publicado"], v=>{c.status=v; save();})));
+      const planNotesInp = makeTextInput(c.notes, v=>{c.notes=v; save();}, "text","Notas"); planNotesInp.style.minWidth="140px";
+      tr.appendChild(td("Notas", planNotesInp));
+      const del=document.createElement("button"); del.className="iconbtn"; del.textContent="✕";
+      del.onclick=()=>{ softDelete("contentPlan", c); };
+      tr.appendChild(td(null, del));
+      tbody.appendChild(tr);
+    });
+    table.appendChild(tbody);
+    tableWrap.appendChild(table);
+    panel.appendChild(tableWrap);
+  }
+  container.appendChild(panel);
+}
+
+/* ---------- ESTRATEGIA ---------- */
+function renderEstrategia(container){
+  const panel = document.createElement("div"); panel.className="panel";
+  panel.innerHTML = `<h2>Estrategia</h2>`;
+  const fields = [
+    ["vision","Visión / misión","¿Hacia dónde vas y por qué?"],
+    ["audience","Público objetivo","¿A quién le hablás?"],
+    ["pillars","Pilares de contenido","Los 3-5 temas centrales de tu contenido"],
+    ["edge","Diferenciación / propuesta de valor","¿Qué te hace distinto?"],
+    ["goals6m","Objetivos a 6-12 meses","Hacia dónde apuntás en el mediano plazo"],
+  ];
+  fields.forEach(([key,label,ph])=>{
+    const lab = document.createElement("div"); lab.className="field-label"; lab.textContent=label;
+    panel.appendChild(lab);
+    const ta = document.createElement("textarea");
+    ta.placeholder = ph;
+    ta.value = DATA.strategy[key] || "";
+    ta.oninput = ()=>{ DATA.strategy[key]=ta.value; save(); };
+    panel.appendChild(ta);
+  });
+  container.appendChild(panel);
+}
+
+/* ---------- NOTAS MENTALES ---------- */
+function renderNotas(container){
+  const panel1 = document.createElement("div"); panel1.className="panel";
+  panel1.innerHTML = `<h2>Hoja en blanco</h2>`;
+  const ta = document.createElement("textarea");
+  ta.style.minHeight="120px";
+  ta.placeholder = "Lo que tengas en la cabeza ahora mismo...";
+  ta.value = DATA.notes.scratch || "";
+  ta.oninput = ()=>{ DATA.notes.scratch = ta.value; save(); };
+  panel1.appendChild(ta);
+  container.appendChild(panel1);
+
+  const panel2 = document.createElement("div"); panel2.className="panel";
+  const head = document.createElement("div");
+  head.style.cssText="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;";
+  head.innerHTML=`<h2 style="margin:0;">Bitácora de ideas</h2>`;
+  const addBtn = document.createElement("button");
+  addBtn.className="btn small"; addBtn.textContent="+ Agregar nota";
+  addBtn.onclick=()=>{
+    const txt = prompt("Escribí tu idea / pensamiento:");
+    if(txt && txt.trim()){
+      DATA.notes.entries.unshift({id:uid(), date:new Date().toISOString(), text:txt.trim()});
+      save(); renderAll();
+    }
+  };
+  head.appendChild(addBtn);
+  panel2.appendChild(head);
+
+  if(DATA.notes.entries.length===0){
+    const e=document.createElement("div"); e.className="empty"; e.textContent="Sin notas todavía. Agregá la primera.";
+    panel2.appendChild(e);
+  } else {
+    DATA.notes.entries.forEach(n=>{
+      const div = document.createElement("div"); div.className="journal-entry";
+      const d = new Date(n.date);
+      const meta = document.createElement("div"); meta.className="meta";
+      const dateSpan = document.createElement("span"); dateSpan.textContent = d.toLocaleString("es-AR",{day:"2-digit",month:"short",year:"numeric",hour:"2-digit",minute:"2-digit"});
+      meta.appendChild(dateSpan);
+      const del = document.createElement("button"); del.className="iconbtn"; del.textContent="✕";
+      del.onclick=()=>{ softDelete("notesEntries", n); };
+      meta.appendChild(del);
+      div.appendChild(meta);
+      const txt = document.createElement("div"); txt.className="txt"; txt.textContent = n.text;
+      div.appendChild(txt);
+      panel2.appendChild(div);
+    });
+  }
+  container.appendChild(panel2);
+}
+
+const RENDERERS = {
+  objetivos: renderObjetivos,
+  finanzas: renderFinanzas,
+  inversiones: renderInversiones,
+  clientes: renderClientes,
+  tareas: renderTareas,
+  calendario: renderCalendario,
+  estadisticas: renderEstadisticas,
+  contenido: renderContenido,
+  instagram: renderInstagram,
+  plancontenido: renderPlanContenido,
+  estrategia: renderEstrategia,
+  notas: renderNotas,
+  papelera: renderPapelera,
+};
+
+// Detecta vista mobile (mismo corte que el media query de CSS, 760px) para
+// mostrar el resumen tipo dashboard arriba de cada pestaña, sin tocar la
+// vista de escritorio (que sigue exactamente igual que siempre).
+function isMobileView(){ return window.innerWidth <= 760; }
+let __wasMobile = isMobileView();
+window.addEventListener("resize", debounce(()=>{
+  const nowMobile = isMobileView();
+  if(nowMobile !== __wasMobile){ __wasMobile = nowMobile; renderAll(); }
+}, 200));
+
+(async function init(){
+  DATA = await loadRemote();
+  buildSidebar();
+  if(autoDeleteStaleTasks()){ /* ya quedó reflejado, el renderAll de abajo lo pinta */ }
+  renderAll();
+  // barrido de fondo cada 15 minutos, para que las tareas "Hecha" se limpien
+  // solas a las 48hs aunque te quedes con la pestaña de Tareas cerrada.
+  setInterval(()=>{ if(autoDeleteStaleTasks() && activeTab==="tareas") renderAll(); }, 15*60*1000);
+})();
+</script>
+</body>
+</html>
