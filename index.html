@@ -578,6 +578,7 @@ function defaultData(){
     notes:{scratch:"", entries:[]},
     events:[],
     trash:[],
+    igFeedback:[],
     accounts:[
       {id:uid(), name:"BBVA", currency:"ARS", opening:0},
       {id:uid(), name:"Efectivo", currency:"ARS", opening:0},
@@ -3015,7 +3016,40 @@ function renderEstadisticas(container){
 
 /* ---------- CONTENIDO (publicado): Reels/Carruseles + Historias ---------- */
 const CONTENT_FORMATS = ["Reel","Carrusel","Otro"];
-const CONTENT_CATEGORIES = ["Reflexión","Conexión","Opinión","Orgánico","Backstage","Pov","Antes/Después","Exposición","Cinematic","Aprendizaje","Recomendaciones","Valor","Creatividad/Proceso","Otro"];
+
+/* ---------- PILARES DE COMUNICACIÓN ----------
+   Sale de los dos mapas de pilares del tablero de Miro (PLAGA): el de
+   pilares generales ("Valor", "Reflexión/Introspección", "Opinión real",
+   "orgánico", "Creatividad/Proceso real", "Cinematic", "Recomendaciones",
+   "Aprendizaje") y el de "Pilares historias" (El proceso, Creatividad,
+   Construcción, Lifestyle con propósito, Los bloqueos, Sistemas).
+   Es la única fuente de verdad: la usan el selector de categoría de
+   Reels/Carruseles, el pilar de Historias, el Plan de contenido y el
+   prompt que arma el generador de ideas con IA. Los labels existentes
+   se mantienen intactos para no romper datos ya cargados. */
+const CONTENT_PILLARS = [
+  {label:"Reflexión", desc:"Introspección en voz alta: cómo pensás, qué estás procesando."},
+  {label:"Conexión", desc:"Cercanía real con la audiencia, sin venta de por medio."},
+  {label:"Opinión", desc:"Tu punto de vista genuino, aunque no sea el que la mayoría quiere escuchar."},
+  {label:"Orgánico", desc:"Momento espontáneo, no guionado, capturado tal cual pasó."},
+  {label:"Backstage", desc:"Detrás de escena de tu trabajo real, sin pulir de más."},
+  {label:"Pov", desc:"Punto de vista en primera persona de una situación puntual."},
+  {label:"Antes/Después", desc:"Contraste que muestra una transformación o resultado concreto."},
+  {label:"Exposición", desc:"Mostrarte tal cual sos, vulnerable, sin filtro."},
+  {label:"Cinematic", desc:"Pieza con estética audiovisual cuidada, más visual que explicativa."},
+  {label:"Aprendizaje", desc:"Algo puntual que aprendiste y podés transmitir en poco tiempo."},
+  {label:"Recomendaciones", desc:"Herramientas, lugares, hábitos o recursos que recomendás de verdad."},
+  {label:"Valor", desc:"Enseña algo útil y accionable — que quieran lo que ofrecés sin que se lo vendas directamente."},
+  {label:"Creatividad/Proceso", desc:"Cómo encontrás ideas, cómo observás, cómo te desbloqueás creativamente."},
+  {label:"Construcción", desc:"No mostrar el resultado, mostrar el camino: 'tardé 5 años en comprarla', no 'compré una cámara'."},
+  {label:"Lifestyle con propósito", desc:"No mostrar el café o el gym en sí, mostrar por qué estás ahí y qué aprendiste."},
+  {label:"Los bloqueos", desc:"Miedo, vergüenza, perfeccionismo, comparación, inseguridad: todo lo que frena empezar."},
+  {label:"Sistemas", desc:"Cómo organizás clientes, proyectos, objetivos y decisiones — desde la claridad, no la productividad tóxica."},
+  {label:"El proceso", desc:"Bitácora diaria: qué estás viviendo hoy, qué aprendiste, qué salió mal, qué cambiarías."},
+  {label:"Otro", desc:""},
+];
+const CONTENT_CATEGORIES = CONTENT_PILLARS.map(p=>p.label);
+const PILLAR_DESC = Object.fromEntries(CONTENT_PILLARS.map(p=>[p.label,p.desc]));
 const CONTENT_STATUS_COLOR = {"Realizado":"green","Prueba":"amber","No subido":"red"};
 
 function makeContentStatusSelect(value, onChange){
@@ -3205,6 +3239,7 @@ function renderHistoriasPanel(container){
   DATA.stories.forEach(s=>{
     if(!Array.isArray(s.slides)) s.slides = ["","","","",""];
     while(s.slides.length<5) s.slides.push("");
+    if(s.pillar===undefined) s.pillar = "";
 
     const card = document.createElement("div");
     card.style.cssText="border:1px solid var(--line);border-radius:10px;padding:12px 14px;margin-bottom:10px;";
@@ -3216,6 +3251,9 @@ function renderHistoriasPanel(container){
     const temaInp = makeTextInput(s.tema, v=>{s.tema=v; save();}, "text", "Tema");
     temaInp.style.flex="1"; temaInp.style.fontWeight="600";
     top.appendChild(temaInp);
+    const pillarWrap = document.createElement("div"); pillarWrap.style.minWidth="150px";
+    pillarWrap.appendChild(makeSelect(s.pillar || "Otro", CONTENT_CATEGORIES, v=>{s.pillar=v; save();}));
+    top.appendChild(pillarWrap);
     const upWrap = document.createElement("div"); upWrap.style.minWidth="90px";
     upWrap.appendChild(makeUploadedSelect(s.uploaded||"No", v=>{s.uploaded=v; save();}));
     top.appendChild(upWrap);
@@ -3266,6 +3304,41 @@ const CHART_AXIS_OPTS = {
   grid:{ color:"rgba(255,255,255,.05)" }
 };
 
+// Feedback diario de Instagram: lo escribe una tarea programada (Claude revisa
+// @nachobzn todos los días y guarda el análisis acá vía Supabase). El
+// dashboard solo lo muestra, no lo genera — no hay forma de scrapear
+// Instagram desde el navegador del usuario sin loguearse.
+function renderIgFeedbackPanel(container){
+  const panel = document.createElement("div"); panel.className="panel";
+  panel.innerHTML = `<h2 style="margin:0 0 10px;">Feedback diario (IA)</h2>`;
+  const entries = DATA.igFeedback || [];
+  if(entries.length===0){
+    const e=document.createElement("div"); e.className="empty";
+    e.textContent="Todavía no hay una revisión guardada. La primera va a aparecer acá después de la próxima corrida diaria.";
+    panel.appendChild(e);
+    container.appendChild(panel);
+    return;
+  }
+  entries.slice(0,14).forEach((f,idx)=>{
+    const card = document.createElement("div");
+    card.style.cssText = "border:1px solid var(--line);border-radius:10px;padding:12px 14px;margin-bottom:10px;"+(idx===0?"border-color:var(--accent);":"");
+    let html = `<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:6px;flex-wrap:wrap;">
+      <div style="font-weight:700;font-size:13px;">${f.headline || "Revisión diaria"}</div>
+      <span style="font-size:11px;color:var(--ink-soft);">${fmtDateNice((f.date||"").slice(0,10))}</span>
+    </div>`;
+    if(f.summary){
+      html += `<div style="font-size:12.5px;color:var(--ink-soft);line-height:1.5;margin-bottom:8px;">${f.summary}</div>`;
+    }
+    if(Array.isArray(f.suggestions) && f.suggestions.length){
+      html += `<ul style="margin:0;padding-left:18px;font-size:12.5px;line-height:1.6;">`+
+        f.suggestions.map(s=>`<li>${s}</li>`).join("")+`</ul>`;
+    }
+    card.innerHTML = html;
+    panel.appendChild(card);
+  });
+  container.appendChild(panel);
+}
+
 function renderInstagram(container){
   // panel de estado de conexión
   const gPanel = document.createElement("div"); gPanel.className="panel";
@@ -3274,13 +3347,15 @@ function renderInstagram(container){
       <div>
         <h2 style="margin:0 0 4px;">Instagram</h2>
         <div style="font-size:12.5px; color:var(--ink-soft); max-width:560px;">
-          No hay una forma simple de conectar tu cuenta personal de Instagram directamente (Meta no lo permite sin una cuenta business + herramientas de terceros).
-          Mientras tanto, este panel analiza automáticamente las métricas que cargás en la pestaña Contenido para mostrarte qué está funcionando.
+          @nachobzn se revisa automáticamente todos los días (perfil público, sin API de Meta) y las devoluciones quedan guardadas abajo.
+          Además, este panel analiza las métricas que cargás en la pestaña Contenido para mostrarte qué está funcionando.
         </div>
       </div>
-      <span class="tag amber">Análisis desde Contenido</span>
+      <span class="tag green">Feedback diario activo</span>
     </div>`;
   container.appendChild(gPanel);
+
+  renderIgFeedbackPanel(container);
 
   const items = DATA.content.filter(c=>numOrNull(c.views)!==null);
   if(items.length===0){
@@ -3402,48 +3477,460 @@ function renderInstagram(container){
 }
 
 /* ---------- PLAN DE CONTENIDO ---------- */
+const CONTENT_PLAN_FORMATS = ["Historia","Reel","Carrusel","Video","Otro"];
+const CONTENT_PLAN_PLATFORMS = ["Instagram","TikTok","YouTube","Blog","Newsletter","LinkedIn","X","Otro"];
+const PLAN_STATUSES = ["Idea","Guion","Grabado","Editado","Publicado"];
+const PLAN_STATUS_COLOR = {"Idea":"grey","Guion":"amber","Grabado":"amber","Editado":"amber","Publicado":"green"};
+const PILLAR_COLOR = Object.fromEntries(CONTENT_PILLARS.map((p,i)=>[p.label, CHART_COLORS[i % CHART_COLORS.length]]));
+const PLATFORM_TAG = {Instagram:"IG", TikTok:"TT", YouTube:"YT", Blog:"BL", Newsletter:"NL", LinkedIn:"LI", X:"X", Otro:"—"};
+
+function makePlanStatusSelect(value, onChange){
+  const sel = document.createElement("select");
+  const cls = PLAN_STATUS_COLOR[value] || "grey";
+  sel.className = "cell-input status-select status-"+cls;
+  PLAN_STATUSES.forEach(o=>{
+    const op = document.createElement("option"); op.value=o; op.textContent=o;
+    if(o===value) op.selected=true;
+    sel.appendChild(op);
+  });
+  sel.onchange = ()=>{
+    const newCls = PLAN_STATUS_COLOR[sel.value] || "grey";
+    sel.className = "cell-input status-select status-"+newCls;
+    onChange(sel.value);
+  };
+  return sel;
+}
+
+function migratePlanItem(c){
+  if(c.format===undefined) c.format = "Reel";
+  if(c.pillar===undefined) c.pillar = "";
+  if(c.hook===undefined) c.hook = "";
+  if(c.script===undefined) c.script = "";
+  if(c.source===undefined) c.source = "manual";
+}
+
+// ---- estado de vista, efímero (no se persiste en DATA) ----
+let planViewMode = "mes"; // mes | semana | hoy | lista
+let planCalendarCursor = new Date();
+let expandedIdeaIds = new Set();
+let planGenBusy = false;
+let planGenError = "";
+let pillarsRefOpen = false;
+let planGenForm = { platforms:{Instagram:true, TikTok:false, YouTube:false}, formats:{Historia:true, Reel:true, Carrusel:true}, pillars:[], count:6, focus:"" };
+
 function renderPlanContenido(container){
+  DATA.contentPlan.forEach(migratePlanItem);
+
+  renderPillarsPanel(container);
+  renderAIGeneratorPanel(container);
+
   const panel = document.createElement("div"); panel.className="panel";
   const head = document.createElement("div");
-  head.style.cssText="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;";
-  head.innerHTML=`<h2 style="margin:0;">Plan de contenido</h2>`;
+  head.style.cssText="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:10px;";
+  const viewTabs = document.createElement("div"); viewTabs.style.cssText="display:flex;gap:6px;flex-wrap:wrap;";
+  [["mes","Mes"],["semana","Semana"],["hoy","Hoy"],["lista","Todas"]].forEach(([id,label])=>{
+    const b = document.createElement("button");
+    b.className = "btn small" + (planViewMode===id ? "" : " ghost");
+    b.textContent = label;
+    b.onclick = ()=>{ planViewMode=id; renderAll(); };
+    viewTabs.appendChild(b);
+  });
+  head.appendChild(viewTabs);
+
   const addBtn = document.createElement("button");
   addBtn.className="btn small"; addBtn.textContent="+ Nueva idea";
   addBtn.onclick=()=>{
-    DATA.contentPlan.unshift({id:uid(), title:"", platform:"Instagram", date:"", status:"Idea", notes:""});
+    DATA.contentPlan.unshift({id:uid(), title:"", platform:"Instagram", format:"Reel", pillar:"", date:"", status:"Idea", hook:"", script:"", notes:"", source:"manual"});
     save(); renderAll();
   };
   head.appendChild(addBtn);
   panel.appendChild(head);
 
   if(DATA.contentPlan.length===0){
-    const e=document.createElement("div"); e.className="empty"; e.textContent="No hay ideas en el plan todavía.";
+    const e=document.createElement("div"); e.className="empty"; e.textContent="No hay ideas en el plan todavía. Agregá una a mano o generá ideas con IA arriba.";
     panel.appendChild(e);
-  } else {
-    const tableWrap = document.createElement("div"); tableWrap.style.overflowX="auto";
-    const table = document.createElement("table");
-    table.className = "rtable";
-    table.innerHTML = `<thead><tr><th>Idea / título</th><th>Plataforma</th><th>Fecha planeada</th><th>Estado</th><th>Notas</th><th></th></tr></thead>`;
-    const tbody = document.createElement("tbody");
-    DATA.contentPlan.forEach(c=>{
-      const tr = document.createElement("tr");
-      const ideaInp = makeTextInput(c.title, v=>{c.title=v; save();}, "text","Idea"); ideaInp.style.minWidth="170px";
-      tr.appendChild(td("Idea", ideaInp));
-      tr.appendChild(td("Plataforma", makeSelect(c.platform, ["Instagram","YouTube","TikTok","Blog","Newsletter","LinkedIn","X","Otro"], v=>{c.platform=v; save();})));
-      tr.appendChild(td("Fecha planeada", makeTextInput(c.date, v=>{c.date=v; save();}, "date")));
-      tr.appendChild(td("Estado", makeSelect(c.status, ["Idea","Guion","Grabado","Editado","Publicado"], v=>{c.status=v; save();})));
-      const planNotesInp = makeTextInput(c.notes, v=>{c.notes=v; save();}, "text","Notas"); planNotesInp.style.minWidth="140px";
-      tr.appendChild(td("Notas", planNotesInp));
-      const del=document.createElement("button"); del.className="iconbtn"; del.textContent="✕";
-      del.onclick=()=>{ softDelete("contentPlan", c); };
-      tr.appendChild(td(null, del));
-      tbody.appendChild(tr);
+    container.appendChild(panel);
+    return;
+  }
+
+  if(planViewMode==="mes") renderPlanMonth(panel);
+  else if(planViewMode==="semana") renderPlanWeek(panel);
+  else if(planViewMode==="hoy") renderPlanDay(panel);
+  else renderPlanList(panel);
+
+  container.appendChild(panel);
+}
+
+function renderPillarsPanel(container){
+  const panel = document.createElement("div"); panel.className="panel";
+  const head = document.createElement("div");
+  head.style.cssText="display:flex;justify-content:space-between;align-items:center;";
+  head.innerHTML = `<h2 style="margin:0;">Pilares de comunicación</h2>`;
+  const toggle = document.createElement("button"); toggle.className="btn ghost small";
+  toggle.textContent = pillarsRefOpen ? "Ocultar" : "Ver los 18";
+  toggle.onclick = ()=>{ pillarsRefOpen = !pillarsRefOpen; renderAll(); };
+  head.appendChild(toggle);
+  panel.appendChild(head);
+
+  if(pillarsRefOpen){
+    const grid = document.createElement("div");
+    grid.style.cssText="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:8px;margin-top:10px;";
+    CONTENT_PILLARS.filter(p=>p.label!=="Otro").forEach(p=>{
+      const card = document.createElement("div");
+      card.style.cssText="border:1px solid var(--line);border-radius:8px;padding:9px 11px;";
+      card.innerHTML = `<div style="display:flex;align-items:center;gap:7px;margin-bottom:4px;">
+        <span style="width:8px;height:8px;border-radius:50%;background:${PILLAR_COLOR[p.label]};flex-shrink:0;"></span>
+        <span style="font-weight:700;font-size:12.5px;">${p.label}</span>
+      </div><div style="font-size:11.5px;color:var(--ink-soft);line-height:1.4;">${p.desc}</div>`;
+      grid.appendChild(card);
     });
-    table.appendChild(tbody);
-    tableWrap.appendChild(table);
-    panel.appendChild(tableWrap);
+    panel.appendChild(grid);
+  } else {
+    const chips = document.createElement("div");
+    chips.style.cssText="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;";
+    CONTENT_PILLARS.filter(p=>p.label!=="Otro").forEach(p=>{
+      const c = document.createElement("span");
+      c.style.cssText="font-size:11px;padding:3px 9px;border-radius:99px;background:rgba(255,255,255,.05);color:var(--ink-soft);display:inline-flex;align-items:center;gap:5px;";
+      c.innerHTML = `<span style="width:6px;height:6px;border-radius:50%;background:${PILLAR_COLOR[p.label]};"></span>${p.label}`;
+      chips.appendChild(c);
+    });
+    panel.appendChild(chips);
   }
   container.appendChild(panel);
+}
+
+function renderAIGeneratorPanel(container){
+  const panel = document.createElement("div"); panel.className="panel";
+  panel.innerHTML = `<h2 style="margin:0 0 4px;">Generar ideas con IA</h2>
+    <div style="font-size:12px;color:var(--ink-soft);margin-bottom:12px;">Arma ideas nuevas de historias, reels y carruseles según tus pilares, y las manda directo al calendario.</div>`;
+
+  const row1 = document.createElement("div");
+  row1.style.cssText="display:flex;flex-wrap:wrap;gap:22px;margin-bottom:12px;";
+  function checkGroup(title, obj, keys){
+    const wrap = document.createElement("div");
+    const lab = document.createElement("div"); lab.style.cssText="font-size:11px;color:var(--ink-soft);margin-bottom:5px;text-transform:uppercase;letter-spacing:.03em;"; lab.textContent=title;
+    wrap.appendChild(lab);
+    const line = document.createElement("div"); line.style.cssText="display:flex;gap:10px;flex-wrap:wrap;";
+    keys.forEach(k=>{
+      const l = document.createElement("label"); l.style.cssText="display:flex;align-items:center;gap:5px;font-size:12.5px;cursor:pointer;";
+      const inp = document.createElement("input"); inp.type="checkbox"; inp.checked = !!obj[k];
+      inp.onchange = ()=>{ obj[k]=inp.checked; };
+      l.appendChild(inp); l.appendChild(document.createTextNode(k));
+      line.appendChild(l);
+    });
+    wrap.appendChild(line);
+    return wrap;
+  }
+  row1.appendChild(checkGroup("Plataformas", planGenForm.platforms, ["Instagram","TikTok","YouTube"]));
+  row1.appendChild(checkGroup("Formatos", planGenForm.formats, ["Historia","Reel","Carrusel"]));
+  panel.appendChild(row1);
+
+  const pillarLab = document.createElement("div"); pillarLab.style.cssText="font-size:11px;color:var(--ink-soft);margin-bottom:5px;text-transform:uppercase;letter-spacing:.03em;"; pillarLab.textContent="Pilares (vacío = todos)";
+  panel.appendChild(pillarLab);
+  const pillarChips = document.createElement("div"); pillarChips.style.cssText="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px;";
+  CONTENT_PILLARS.filter(p=>p.label!=="Otro").forEach(p=>{
+    const active = planGenForm.pillars.includes(p.label);
+    const c = document.createElement("button"); c.type="button";
+    c.style.cssText="font-size:11px;padding:4px 10px;border-radius:99px;border:1px solid "+(active?PILLAR_COLOR[p.label]:"var(--line)")+";background:"+(active?PILLAR_COLOR[p.label]+"22":"transparent")+";color:"+(active?"var(--ink)":"var(--ink-soft)")+";cursor:pointer;";
+    c.textContent = p.label;
+    c.onclick = ()=>{
+      if(active) planGenForm.pillars = planGenForm.pillars.filter(x=>x!==p.label);
+      else planGenForm.pillars.push(p.label);
+      renderAll();
+    };
+    pillarChips.appendChild(c);
+  });
+  panel.appendChild(pillarChips);
+
+  const row2 = document.createElement("div");
+  row2.style.cssText="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;margin-bottom:12px;";
+  const countWrap = document.createElement("div");
+  countWrap.innerHTML = `<div style="font-size:11px;color:var(--ink-soft);margin-bottom:5px;">Cantidad</div>`;
+  const countInp = makeTextInput(String(planGenForm.count), v=>{ planGenForm.count = Math.max(1, Math.min(20, Number(v)||6)); }, "text","6");
+  countInp.setAttribute("inputmode","numeric"); countInp.style.maxWidth="70px";
+  countWrap.appendChild(countInp);
+  row2.appendChild(countWrap);
+  const focusWrap = document.createElement("div"); focusWrap.style.flex="1"; focusWrap.style.minWidth="200px";
+  focusWrap.innerHTML = `<div style="font-size:11px;color:var(--ink-soft);margin-bottom:5px;">Foco / contexto (opcional)</div>`;
+  const focusInp = makeTextInput(planGenForm.focus, v=>{planGenForm.focus=v;}, "text", "ej: enfocado en el lanzamiento de las asesorías");
+  focusWrap.appendChild(focusInp);
+  row2.appendChild(focusWrap);
+  panel.appendChild(row2);
+
+  const genBtn = document.createElement("button");
+  genBtn.className="btn"; genBtn.textContent = planGenBusy ? "Generando…" : "✦ Generar ideas";
+  genBtn.disabled = planGenBusy;
+  genBtn.onclick = ()=> runAIGeneration();
+  panel.appendChild(genBtn);
+
+  if(planGenError){
+    const err = document.createElement("div");
+    err.style.cssText="margin-top:10px;font-size:12px;color:var(--red);background:var(--red-soft);padding:9px 11px;border-radius:8px;line-height:1.5;";
+    err.textContent = planGenError;
+    panel.appendChild(err);
+  }
+  container.appendChild(panel);
+}
+
+// reparte una lista de ideas generadas por IA en fechas del mes de referencia,
+// evitando amontonar todo en el mismo día ("story-calendar")
+function autoDistributeDates(ideas, refDate){
+  const year = refDate.getFullYear(), month = refDate.getMonth();
+  const daysInMonth = new Date(year, month+1, 0).getDate();
+  const today = new Date(); today.setHours(0,0,0,0);
+  const isCurrentMonth = refDate.getFullYear()===today.getFullYear() && refDate.getMonth()===today.getMonth();
+  const startDay = isCurrentMonth ? today.getDate() : 1;
+  const availableDays = [];
+  for(let d=startDay; d<=daysInMonth; d++) availableDays.push(d);
+  if(availableDays.length===0) for(let d=1; d<=daysInMonth; d++) availableDays.push(d);
+  const step = Math.max(1, Math.floor(availableDays.length / Math.max(ideas.length,1)));
+  return ideas.map((idea,i)=>{
+    const dayIdx = Math.min(i*step, availableDays.length-1);
+    const day = availableDays[dayIdx];
+    const iso = `${year}-${String(month+1).padStart(2,"0")}-${String(day).padStart(2,"0")}`;
+    return Object.assign({}, idea, { date: idea.date || iso });
+  });
+}
+
+async function runAIGeneration(){
+  const platforms = Object.keys(planGenForm.platforms).filter(k=>planGenForm.platforms[k]);
+  const formats = Object.keys(planGenForm.formats).filter(k=>planGenForm.formats[k]);
+  if(platforms.length===0 || formats.length===0){
+    planGenError = "Elegí al menos una plataforma y un formato.";
+    renderAll();
+    return;
+  }
+  planGenBusy = true; planGenError=""; renderAll();
+  try{
+    const pillarLabels = planGenForm.pillars.length ? planGenForm.pillars : CONTENT_PILLARS.filter(p=>p.label!=="Otro").map(p=>p.label);
+    const res = await fetch(`${SUPABASE_URL}/functions/v1/generate-content-ideas`, {
+      method:"POST",
+      headers:{ apikey:SUPABASE_ANON_KEY, Authorization:`Bearer ${SUPABASE_ANON_KEY}`, "Content-Type":"application/json" },
+      body: JSON.stringify({
+        platforms, formats, count: planGenForm.count, focus: planGenForm.focus,
+        pillars: pillarLabels.map(label=>({label, desc:PILLAR_DESC[label]})),
+      })
+    });
+    if(!res.ok){
+      const txt = await res.text().catch(()=> "");
+      if(res.status===404) throw new Error("El generador todavía no está desplegado en Supabase.");
+      throw new Error("El generador devolvió un error ("+res.status+"). "+(txt||"").slice(0,200));
+    }
+    const data = await res.json();
+    const ideas = Array.isArray(data.ideas) ? data.ideas : (Array.isArray(data) ? data : []);
+    if(ideas.length===0) throw new Error("La IA no devolvió ideas. Probá de nuevo.");
+    const dated = autoDistributeDates(ideas, planCalendarCursor);
+    dated.forEach(idea=>{
+      DATA.contentPlan.unshift({
+        id:uid(),
+        title: idea.title || "Idea sin título",
+        platform: idea.platform || platforms[0],
+        format: idea.format || formats[0],
+        pillar: idea.pillar || "",
+        date: idea.date || "",
+        status:"Idea",
+        hook: idea.hook || "",
+        script: idea.script || "",
+        notes:"",
+        source:"ia"
+      });
+    });
+    save();
+  }catch(e){
+    planGenError = "No se pudo generar: " + e.message + " Si es la primera vez, revisá que exista la función 'generate-content-ideas' en Supabase con la clave ANTHROPIC_API_KEY cargada como secreto.";
+  }
+  planGenBusy = false;
+  renderAll();
+}
+
+function planPillarDot(pillar){
+  const color = PILLAR_COLOR[pillar] || "var(--ink-soft)";
+  return `<span style="width:7px;height:7px;border-radius:50%;background:${color};flex-shrink:0;display:inline-block;"></span>`;
+}
+
+function renderIdeaCard(c, parent){
+  migratePlanItem(c);
+  const expanded = expandedIdeaIds.has(c.id);
+  const card = document.createElement("div");
+  card.className = "kcard" + (expanded ? " expanded" : "");
+  card.style.marginBottom="8px";
+
+  const headEl = document.createElement("div"); headEl.className="kcard-head"; headEl.style.cursor="pointer";
+  headEl.innerHTML = `
+    <div class="kcard-title-row">
+      <span class="kcard-dot" style="background:${PILLAR_COLOR[c.pillar]||"var(--ink-soft)"};"></span>
+      <div class="kcard-title-text" style="flex:1;">
+        <div style="font-weight:600;font-size:13.5px;">${c.title || "(sin título)"}</div>
+        <div style="font-size:11px;color:var(--ink-soft);margin-top:3px;display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
+          <span class="tag grey">${PLATFORM_TAG[c.platform]||c.platform}</span>
+          <span>${c.format}</span>
+          ${c.pillar ? `<span>· ${c.pillar}</span>` : ""}
+          ${c.date ? `<span>· ${fmtDateNice(c.date)}</span>` : ""}
+          ${c.source==="ia" ? `<span style="color:var(--accent);">· ✦ IA</span>` : ""}
+        </div>
+      </div>
+      <span class="tag ${PLAN_STATUS_COLOR[c.status]||"grey"}">${c.status}</span>
+      <span class="kcard-chevron">▾</span>
+    </div>`;
+  headEl.onclick = (e)=>{
+    if(e.target.closest("select") || e.target.closest("input") || e.target.closest("button")) return;
+    if(expanded) expandedIdeaIds.delete(c.id); else expandedIdeaIds.add(c.id);
+    renderAll();
+  };
+  card.appendChild(headEl);
+
+  const body = document.createElement("div"); body.className="kcard-body";
+  const row1 = document.createElement("div"); row1.style.cssText="display:flex;gap:8px;flex-wrap:wrap;";
+  const titleInp = makeTextInput(c.title, v=>{c.title=v; save();}, "text","Título / idea"); titleInp.style.flex="1"; titleInp.style.minWidth="180px";
+  row1.appendChild(titleInp);
+  body.appendChild(row1);
+
+  const row2 = document.createElement("div"); row2.style.cssText="display:flex;gap:8px;flex-wrap:wrap;";
+  row2.appendChild(makeSelect(c.platform, CONTENT_PLAN_PLATFORMS, v=>{c.platform=v; save();}));
+  row2.appendChild(makeSelect(c.format, CONTENT_PLAN_FORMATS, v=>{c.format=v; save();}));
+  row2.appendChild(makeSelect(c.pillar||"Otro", CONTENT_CATEGORIES, v=>{c.pillar=v; save();}));
+  const dateInp = makeTextInput(c.date, v=>{c.date=v; save();}, "date"); dateInp.style.maxWidth="150px";
+  row2.appendChild(dateInp);
+  row2.appendChild(makePlanStatusSelect(c.status, v=>{c.status=v; save();}));
+  body.appendChild(row2);
+
+  const hookLab = document.createElement("div"); hookLab.style.cssText="font-size:11px;color:var(--ink-soft);"; hookLab.textContent="Hook / gancho";
+  body.appendChild(hookLab);
+  const hookInp = makeTextInput(c.hook, v=>{c.hook=v; save();}, "text","Primera línea que engancha...");
+  body.appendChild(hookInp);
+
+  const scriptLab = document.createElement("div"); scriptLab.style.cssText="font-size:11px;color:var(--ink-soft);"; scriptLab.textContent="Guion";
+  body.appendChild(scriptLab);
+  const scriptTa = document.createElement("textarea"); scriptTa.style.minHeight="80px";
+  scriptTa.value = c.script||""; scriptTa.placeholder="Guion o desarrollo de la idea...";
+  scriptTa.oninput = ()=>{ c.script=scriptTa.value; save(); };
+  body.appendChild(scriptTa);
+
+  const notesLab = document.createElement("div"); notesLab.style.cssText="font-size:11px;color:var(--ink-soft);"; notesLab.textContent="Notas";
+  body.appendChild(notesLab);
+  const notesTa = document.createElement("textarea"); notesTa.style.minHeight="46px";
+  notesTa.value = c.notes||""; notesTa.placeholder="Notas...";
+  notesTa.oninput = ()=>{ c.notes=notesTa.value; save(); };
+  body.appendChild(notesTa);
+
+  const delBtn = document.createElement("button"); delBtn.className="btn ghost small"; delBtn.textContent="Eliminar";
+  delBtn.style.alignSelf="flex-start";
+  delBtn.onclick = ()=>{ softDelete("contentPlan", c); };
+  body.appendChild(delBtn);
+
+  card.appendChild(body);
+  parent.appendChild(card);
+}
+
+function renderPlanList(panel){
+  const wrap = document.createElement("div"); wrap.style.marginTop="10px";
+  [...DATA.contentPlan].sort((a,b)=> (a.date||"9999").localeCompare(b.date||"9999")).forEach(c=> renderIdeaCard(c, wrap));
+  panel.appendChild(wrap);
+}
+
+function renderPlanDay(panel){
+  const iso = todayISO();
+  const items = DATA.contentPlan.filter(c=>c.date===iso);
+  const noDate = DATA.contentPlan.filter(c=>!c.date);
+  const wrap = document.createElement("div"); wrap.style.marginTop="10px";
+  const h = document.createElement("div"); h.style.cssText="font-weight:700;margin-bottom:8px;"; h.textContent = "Hoy · " + fmtDateNice(iso);
+  wrap.appendChild(h);
+  if(items.length===0){
+    const e=document.createElement("div"); e.className="empty"; e.textContent="Nada planeado para hoy."; wrap.appendChild(e);
+  } else items.forEach(c=> renderIdeaCard(c, wrap));
+
+  if(noDate.length){
+    const h2 = document.createElement("div"); h2.style.cssText="font-weight:700;margin:16px 0 8px;color:var(--ink-soft);font-size:12px;text-transform:uppercase;"; h2.textContent = "Sin fecha ("+noDate.length+")";
+    wrap.appendChild(h2);
+    noDate.forEach(c=> renderIdeaCard(c, wrap));
+  }
+  panel.appendChild(wrap);
+}
+
+function startOfWeek(d){
+  const dt = new Date(d); const day = (dt.getDay()+6)%7;
+  dt.setDate(dt.getDate()-day); dt.setHours(0,0,0,0); return dt;
+}
+function isoDate(d){ return d.toISOString().slice(0,10); }
+
+function renderPlanWeek(panel){
+  const start = startOfWeek(planCalendarCursor);
+  const nav = document.createElement("div"); nav.style.cssText="display:flex;align-items:center;gap:10px;margin:10px 0;";
+  const prev = document.createElement("button"); prev.className="btn ghost small"; prev.textContent="←";
+  prev.onclick = ()=>{ planCalendarCursor = new Date(start.getTime()-7*86400000); renderAll(); };
+  const next = document.createElement("button"); next.className="btn ghost small"; next.textContent="→";
+  next.onclick = ()=>{ planCalendarCursor = new Date(start.getTime()+7*86400000); renderAll(); };
+  const label = document.createElement("div"); label.style.fontWeight="700";
+  const end = new Date(start.getTime()+6*86400000);
+  label.textContent = fmtDateNice(isoDate(start)) + " – " + fmtDateNice(isoDate(end));
+  nav.appendChild(prev); nav.appendChild(label); nav.appendChild(next);
+  panel.appendChild(nav);
+
+  const grid = document.createElement("div");
+  grid.style.cssText="display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:8px;";
+  for(let i=0;i<7;i++){
+    const d = new Date(start.getTime()+i*86400000);
+    const iso = isoDate(d);
+    const items = DATA.contentPlan.filter(c=>c.date===iso);
+    const col = document.createElement("div");
+    col.style.cssText="border:1px solid var(--line);border-radius:8px;padding:8px;min-height:100px;";
+    const isToday = iso===todayISO();
+    col.innerHTML = `<div style="font-size:11px;color:${isToday?"var(--accent)":"var(--ink-soft)"};font-weight:700;margin-bottom:6px;">${d.toLocaleDateString("es-AR",{weekday:"short",day:"2-digit"})}</div>`;
+    items.forEach(c=>{
+      const pill = document.createElement("div");
+      pill.style.cssText="font-size:10.5px;padding:4px 6px;border-radius:6px;background:rgba(255,255,255,.05);margin-bottom:4px;cursor:pointer;display:flex;gap:5px;align-items:center;";
+      pill.innerHTML = `${planPillarDot(c.pillar)}<span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${c.title||"(sin título)"}</span>`;
+      pill.onclick = ()=>{ expandedIdeaIds.add(c.id); planViewMode="lista"; renderAll(); };
+      col.appendChild(pill);
+    });
+    grid.appendChild(col);
+  }
+  panel.appendChild(grid);
+}
+
+function renderPlanMonth(panel){
+  const ref = planCalendarCursor;
+  const year = ref.getFullYear(), month = ref.getMonth();
+  const nav = document.createElement("div"); nav.style.cssText="display:flex;align-items:center;gap:10px;margin:10px 0;";
+  const prev = document.createElement("button"); prev.className="btn ghost small"; prev.textContent="←";
+  prev.onclick = ()=>{ planCalendarCursor = new Date(year, month-1, 1); renderAll(); };
+  const next = document.createElement("button"); next.className="btn ghost small"; next.textContent="→";
+  next.onclick = ()=>{ planCalendarCursor = new Date(year, month+1, 1); renderAll(); };
+  const label = document.createElement("div"); label.style.fontWeight="700";
+  label.textContent = ref.toLocaleDateString("es-AR",{month:"long", year:"numeric"});
+  nav.appendChild(prev); nav.appendChild(label); nav.appendChild(next);
+  panel.appendChild(nav);
+
+  const firstDay = new Date(year, month, 1);
+  const startOffset = (firstDay.getDay()+6)%7;
+  const daysInMonth = new Date(year, month+1, 0).getDate();
+
+  const grid = document.createElement("div");
+  grid.style.cssText="display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px;";
+  ["Lun","Mar","Mié","Jue","Vie","Sáb","Dom"].forEach(d=>{
+    const h = document.createElement("div"); h.style.cssText="font-size:10.5px;color:var(--ink-soft);text-align:center;padding-bottom:4px;"; h.textContent=d;
+    grid.appendChild(h);
+  });
+  for(let i=0;i<startOffset;i++){ grid.appendChild(document.createElement("div")); }
+  for(let day=1; day<=daysInMonth; day++){
+    const iso = `${year}-${String(month+1).padStart(2,"0")}-${String(day).padStart(2,"0")}`;
+    const items = DATA.contentPlan.filter(c=>c.date===iso);
+    const cell = document.createElement("div");
+    const isToday = iso===todayISO();
+    cell.style.cssText="border:1px solid "+(isToday?"var(--accent)":"var(--line)")+";border-radius:8px;padding:6px;min-height:64px;";
+    let html = `<div style="font-size:10.5px;color:${isToday?"var(--accent)":"var(--ink-soft)"};font-weight:${isToday?"700":"400"};margin-bottom:4px;">${day}</div>`;
+    items.slice(0,3).forEach(c=>{
+      html += `<div style="font-size:9.5px;padding:2px 4px;border-radius:4px;background:rgba(255,255,255,.05);margin-bottom:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:flex;gap:4px;align-items:center;"><span style="width:5px;height:5px;border-radius:50%;background:${PILLAR_COLOR[c.pillar]||"var(--ink-soft)"};flex-shrink:0;"></span>${c.title||"(sin título)"}</div>`;
+    });
+    if(items.length>3) html += `<div style="font-size:9px;color:var(--ink-soft);">+${items.length-3} más</div>`;
+    cell.innerHTML = html;
+    if(items.length){
+      cell.style.cursor="pointer";
+      cell.onclick = ()=>{ items.forEach(c=>expandedIdeaIds.add(c.id)); planViewMode="lista"; renderAll(); };
+    }
+    grid.appendChild(cell);
+  }
+  panel.appendChild(grid);
 }
 
 /* ---------- ESTRATEGIA ---------- */
