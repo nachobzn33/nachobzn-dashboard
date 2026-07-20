@@ -618,11 +618,13 @@ function loadLocalCache(){
   }catch(e){ return defaultData(); }
 }
 
+let lastKnownUpdatedAt = null;
+
 async function loadRemote(){
   const cached = loadLocalCache();
   try{
     const res = await fetch(
-      `${SUPABASE_URL}/rest/v1/dashboard_data?id=eq.${ROW_ID}&select=data`,
+      `${SUPABASE_URL}/rest/v1/dashboard_data?id=eq.${ROW_ID}&select=data,updated_at`,
       { headers:{ apikey: SUPABASE_ANON_KEY, Authorization:`Bearer ${SUPABASE_ANON_KEY}` } }
     );
     if(res.ok){
@@ -630,6 +632,7 @@ async function loadRemote(){
       if(rows && rows[0] && rows[0].data){
         const merged = Object.assign(defaultData(), rows[0].data);
         localStorage.setItem(STORAGE_KEY, JSON.stringify(merged));
+        lastKnownUpdatedAt = rows[0].updated_at || null;
         return merged;
       }
     }
@@ -639,8 +642,10 @@ async function loadRemote(){
 
 let saveTimer = null;
 let remoteSaveTimer = null;
+let pendingLocalSave = false;
 function save(){
   localStorage.setItem(STORAGE_KEY, JSON.stringify(DATA));
+  pendingLocalSave = true;
   const mark = document.getElementById("saveMark");
   mark.classList.remove("err");
   mark.textContent = "Guardando…";
@@ -651,6 +656,7 @@ function save(){
 
 async function syncRemote(){
   const mark = document.getElementById("saveMark");
+  const stamp = new Date().toISOString();
   try{
     const res = await fetch(`${SUPABASE_URL}/rest/v1/dashboard_data`, {
       method:"POST",
@@ -660,17 +666,69 @@ async function syncRemote(){
         "Content-Type":"application/json",
         Prefer:"resolution=merge-duplicates,return=minimal"
       },
-      body: JSON.stringify({ id:ROW_ID, data:DATA, updated_at:new Date().toISOString() })
+      body: JSON.stringify({ id:ROW_ID, data:DATA, updated_at:stamp })
     });
     mark.classList.toggle("err", !res.ok);
     mark.textContent = res.ok ? "Guardado ✓" : "Sin conexión (local)";
+    if(res.ok) lastKnownUpdatedAt = stamp;
   }catch(e){
     mark.classList.add("err");
     mark.textContent = "Sin conexión (local)";
   }
+  pendingLocalSave = false;
   clearTimeout(saveTimer);
   saveTimer = setTimeout(()=>mark.classList.remove("show"), 1500);
 }
+
+// --- Sincronización en vivo entre dispositivos ---
+// Cada pocos segundos (y siempre que la app vuelve a primer plano) chequea si
+// hay una versión más nueva en Supabase guardada desde otro dispositivo, y si
+// la hay, la trae y repinta sola — sin que haga falta actualizar la pestaña
+// a mano. Si justo estás escribiendo algo (input/select con foco) o hay un
+// guardado local todavía en camino, espera al próximo chequeo para no
+// pisarte lo que estás anotando.
+let pollInFlight = false;
+function isUserEditingSomething(){
+  const el = document.activeElement;
+  if(!el) return false;
+  const tag = el.tagName;
+  return tag==="INPUT" || tag==="TEXTAREA" || tag==="SELECT";
+}
+async function pollRemote(){
+  if(pollInFlight || pendingLocalSave) return;
+  pollInFlight = true;
+  try{
+    const res = await fetch(
+      `${SUPABASE_URL}/rest/v1/dashboard_data?id=eq.${ROW_ID}&select=data,updated_at`,
+      { headers:{ apikey: SUPABASE_ANON_KEY, Authorization:`Bearer ${SUPABASE_ANON_KEY}` } }
+    );
+    if(res.ok){
+      const rows = await res.json();
+      const row = rows && rows[0];
+      if(row && row.updated_at && row.updated_at !== lastKnownUpdatedAt){
+        if(isUserEditingSomething() || pendingLocalSave){
+          // hay algo sin guardar en este dispositivo: reintenta en el próximo ciclo
+        } else {
+          DATA = Object.assign(defaultData(), row.data);
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(DATA));
+          lastKnownUpdatedAt = row.updated_at;
+          renderAll();
+          const mark = document.getElementById("saveMark");
+          mark.classList.remove("err");
+          mark.textContent = "Actualizado desde otro dispositivo ✓";
+          mark.classList.add("show");
+          clearTimeout(saveTimer);
+          saveTimer = setTimeout(()=>mark.classList.remove("show"), 1800);
+        }
+      }
+    }
+  }catch(e){ /* sin conexión: se reintenta en el próximo ciclo */ }
+  pollInFlight = false;
+}
+let pollTimer = setInterval(pollRemote, 5000);
+document.addEventListener("visibilitychange", ()=>{ if(!document.hidden) pollRemote(); });
+window.addEventListener("focus", pollRemote);
+window.addEventListener("pageshow", pollRemote);
 
 let activeTab = "objetivos";
 
