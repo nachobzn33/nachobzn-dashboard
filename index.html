@@ -245,6 +245,16 @@
   }
   td{padding:7px 8px; border-bottom:1px solid var(--line); vertical-align:middle; color:var(--ink);}
   tr:last-child td{border-bottom:none;}
+  .content-table thead th{position:sticky; top:0; background:var(--panel); z-index:1; white-space:nowrap;}
+  .content-table tbody tr{transition:background .1s ease;}
+  .content-table tbody tr:hover{background:rgba(255,255,255,.025);}
+  .content-table .eng-cell{font-weight:700; white-space:nowrap;}
+  .content-table .eng-hi{color:var(--green);}
+  .content-table .eng-lo{color:var(--ink-soft);}
+  .content-table .col-tight .cell-input{min-width:90px;}
+  .content-table .col-wide .cell-input{min-width:170px;}
+  .content-table .col-select .cell-input{min-width:112px;}
+  .content-table td{white-space:nowrap;}
   input[type=text], input[type=date], input[type=number], select, textarea{
     font-family:inherit;
     font-size:13px;
@@ -539,6 +549,14 @@ function fmtQty(n){
   if(s.indexOf(".")!==-1) s = s.replace(/0+$/,"").replace(/\.$/,"");
   return s;
 }
+// número compacto tipo Notion/redes: 12.8K, 1.4M — solo para lectura (KPIs, gráficos, rankings)
+function fmtCompact(n){
+  n = Number(n)||0;
+  const abs = Math.abs(n);
+  if(abs >= 1000000) return (n/1000000).toFixed(1).replace(/\.0$/,"")+"M";
+  if(abs >= 1000) return (n/1000).toFixed(1).replace(/\.0$/,"")+"K";
+  return String(Math.round(n));
+}
 function parseTargets(str){
   return (str||"").split("/").map(s=>parseFloat(s.trim())).filter(n=>!isNaN(n));
 }
@@ -574,6 +592,7 @@ function defaultData(){
     content:[],
     stories:[],
     contentPlan:[],
+    hypotheses:[],
     strategy:{vision:"", audience:"", pillars:"", edge:"", goals6m:""},
     notes:{scratch:"", entries:[]},
     events:[],
@@ -2977,12 +2996,14 @@ function renderCalendario(container){
 
 /* ---------- ESTADISTICAS ---------- */
 function renderEstadisticas(container){
+  renderContentAnalytics(container);
+
   const panel = document.createElement("div"); panel.className="panel";
   const head = document.createElement("div");
   head.style.cssText="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;";
-  head.innerHTML=`<h2 style="margin:0;">Métricas clave</h2>`;
+  head.innerHTML=`<div><h2 style="margin:0;">Otras métricas</h2><div style="font-size:12px;color:var(--ink-soft);margin-top:2px;">Números sueltos que querés trackear a mano (seguidores totales, ingresos, etc.) — no vienen de Contenido.</div></div>`;
   const addBtn = document.createElement("button");
-  addBtn.className="btn small"; addBtn.textContent="+ Nueva métrica";
+  addBtn.className="btn small"; addBtn.textContent="+ Nueva métrica"; addBtn.style.flexShrink="0";
   addBtn.onclick=()=>{
     DATA.stats.push({id:uid(), label:"", value:""});
     save(); renderAll();
@@ -3051,6 +3072,20 @@ const CONTENT_PILLARS = [
 const CONTENT_CATEGORIES = CONTENT_PILLARS.map(p=>p.label);
 const PILLAR_DESC = Object.fromEntries(CONTENT_PILLARS.map(p=>[p.label,p.desc]));
 const CONTENT_STATUS_COLOR = {"Realizado":"green","Prueba":"amber","No subido":"red"};
+
+function migrateContentItem(c){
+  if(c.status===undefined) c.status = "Prueba";
+  if(c.reach===undefined) c.reach = "";
+  if(c.notes===undefined) c.notes = "";
+}
+// engagement = (likes+comentarios+guardados+compartidos) / vistas — mide qué tan bien resonó,
+// no solo cuánto alcance tuvo (un reel viral por el algoritmo puede tener bajo engagement real)
+function engagementRate(c){
+  const views = numOrNull(c.views);
+  if(!views) return null;
+  const inter = (numOrNull(c.likes)||0)+(numOrNull(c.comments)||0)+(numOrNull(c.saves)||0)+(numOrNull(c.shares)||0);
+  return inter/views*100;
+}
 
 function makeContentStatusSelect(value, onChange){
   const sel = document.createElement("select");
@@ -3151,20 +3186,183 @@ function renderMobileContenidoSummary(container){
 function renderContenido(container){
   if(isMobileView()) renderMobileContenidoSummary(container);
   renderReelsPanel(container);
+  renderHipotesisPanel(container);
   renderHistoriasPanel(container);
+}
+
+// promedia engagementRate() de un grupo de piezas, ignorando las que no tienen vistas cargadas
+function avgEngagement(items){
+  const withEng = items.map(engagementRate).filter(e=>e!==null);
+  if(withEng.length===0) return null;
+  return withEng.reduce((a,b)=>a+b,0)/withEng.length;
+}
+
+function groupAvgEngagement(items, keyFn){
+  const groups = {};
+  items.forEach(c=>{
+    const key = (keyFn(c)||"").trim();
+    if(!key) return;
+    const eng = engagementRate(c);
+    if(eng===null) return;
+    if(!groups[key]) groups[key] = [];
+    groups[key].push(eng);
+  });
+  return Object.entries(groups)
+    .map(([key,vals])=>({key, avg: vals.reduce((a,b)=>a+b,0)/vals.length, count: vals.length}))
+    .sort((a,b)=>b.avg-a.avg);
+}
+
+let contentAnalyticsCharts = [];
+function destroyContentAnalyticsCharts(){ contentAnalyticsCharts.forEach(c=>{ try{c.destroy();}catch(e){} }); contentAnalyticsCharts=[]; }
+
+// Panel completo de rendimiento de contenido: KPIs exactos + gráficos + rankings + por qué funcionó.
+// Vive en la pestaña Estadísticas, conectado directo a lo que se carga en Contenido (Reels/Carruseles).
+function renderContentAnalytics(container){
+  destroyContentAnalyticsCharts();
+  const items = DATA.content.filter(c=>numOrNull(c.views)!==null);
+
+  const head = document.createElement("div"); head.className="panel";
+  head.innerHTML = `<h2 style="margin:0 0 4px;">Rendimiento de contenido</h2>
+    <div style="font-size:12px;color:var(--ink-soft);">Conectado en vivo a lo que cargás en Contenido → Reels/Carruseles. Medido por engagement (likes + comentarios + guardados + compartidos sobre vistas) — más confiable que las vistas solas, porque no depende de cuánto empujó el algoritmo.</div>`;
+  container.appendChild(head);
+
+  if(items.length===0){
+    const e = document.createElement("div"); e.className="panel";
+    e.innerHTML = `<div class="empty">Todavía no hay piezas con vistas cargadas. Sumalas en Contenido → Reels/Carruseles y acá vas a ver los números y gráficos automáticamente.</div>`;
+    container.appendChild(e);
+    return;
+  }
+
+  const overallAvg = avgEngagement(items);
+  const sum = (key)=>items.reduce((a,c)=>a+(numOrNull(c[key])||0),0);
+  const totalViews = sum("views"), totalLikes = sum("likes"), totalSaves = sum("saves"),
+        totalShares = sum("shares"), totalComments = sum("comments"), totalReach = sum("reach"), totalNewFollowers = sum("newFollowers");
+  const byPilar = groupAvgEngagement(items, c=>c.category);
+  const byMusica = groupAvgEngagement(items, c=>c.music);
+  const ranked = [...items].filter(c=>engagementRate(c)!==null).sort((a,b)=>engagementRate(b)-engagementRate(a));
+
+  // KPIs con números exactos (sin redondear a K/M) — "datos precisos"
+  const kpis = document.createElement("div"); kpis.className="kpis";
+  [
+    ["Piezas publicadas", String(items.length)],
+    ["Vistas totales", fmtMoney(totalViews)],
+    ["Alcance total", fmtMoney(totalReach)],
+    ["Engagement promedio", overallAvg===null ? "—" : overallAvg.toFixed(1)+"%"],
+    ["Likes totales", fmtMoney(totalLikes)],
+    ["Guardados totales", fmtMoney(totalSaves)],
+    ["Compartidos totales", fmtMoney(totalShares)],
+    ["Comentarios totales", fmtMoney(totalComments)],
+    ["Nuevos seguidores", fmtMoney(totalNewFollowers)],
+  ].forEach(([lbl,val])=>{
+    const k=document.createElement("div"); k.className="kpi";
+    k.innerHTML = `<div class="lbl">${lbl}</div><div class="val">${val}</div>`;
+    kpis.appendChild(k);
+  });
+  const kpiPanel = document.createElement("div"); kpiPanel.className="panel"; kpiPanel.appendChild(kpis);
+  container.appendChild(kpiPanel);
+
+  // gráfico: vistas por publicación a lo largo del tiempo
+  const sortedByDate = [...items].filter(c=>c.date).sort((a,b)=>a.date.localeCompare(b.date));
+  if(sortedByDate.length>1 && window.Chart){
+    const trendPanel = document.createElement("div"); trendPanel.className="panel";
+    trendPanel.innerHTML = `<h2 style="margin:0 0 12px;">Vistas por publicación a lo largo del tiempo</h2>`;
+    const wrap = document.createElement("div"); wrap.style.cssText="height:220px;position:relative;";
+    const canvas = document.createElement("canvas"); wrap.appendChild(canvas);
+    trendPanel.appendChild(wrap);
+    container.appendChild(trendPanel);
+    contentAnalyticsCharts.push(new Chart(canvas.getContext("2d"), {
+      type:"line",
+      data:{ labels: sortedByDate.map(c=>fmtDateNice(c.date)),
+        datasets:[{ label:"Vistas", data: sortedByDate.map(c=>numOrNull(c.views)||0),
+          borderColor:"#22c55e", backgroundColor:"rgba(34,197,94,.18)", fill:true, tension:.3, pointRadius:2 }] },
+      options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}, scales:{x:CHART_AXIS_OPTS,y:CHART_AXIS_OPTS} }
+    }));
+  }
+
+  // gráficos: engagement promedio por pilar y por música
+  function barChart(title, rows){
+    if(rows.length===0 || !window.Chart) return;
+    const p = document.createElement("div"); p.className="panel";
+    p.innerHTML = `<h2 style="margin:0 0 12px;">${title}</h2>`;
+    const wrap = document.createElement("div"); wrap.style.cssText="height:220px;position:relative;";
+    const canvas = document.createElement("canvas"); wrap.appendChild(canvas);
+    p.appendChild(wrap);
+    container.appendChild(p);
+    contentAnalyticsCharts.push(new Chart(canvas.getContext("2d"), {
+      type:"bar",
+      data:{ labels: rows.map(r=>r.key), datasets:[{ data: rows.map(r=>Math.round(r.avg*10)/10), backgroundColor:"#0ea5e9", borderRadius:6 }] },
+      options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}, scales:{x:CHART_AXIS_OPTS,y:CHART_AXIS_OPTS} }
+    }));
+  }
+  barChart("Engagement promedio por pilar (%)", byPilar);
+  barChart("Engagement promedio por música (%)", byMusica);
+
+  // rankings numéricos (además de los gráficos, para ver el detalle exacto)
+  function miniRanking(title, rows, emptyMsg){
+    const wrap = document.createElement("div");
+    wrap.innerHTML = `<div style="font-size:11px;color:var(--ink-soft);text-transform:uppercase;letter-spacing:.03em;margin-bottom:6px;">${title}</div>`;
+    if(rows.length===0){
+      const e = document.createElement("div"); e.style.cssText="font-size:12px;color:var(--ink-soft);padding:6px 0;"; e.textContent=emptyMsg;
+      wrap.appendChild(e);
+    } else {
+      const maxAvg = rows[0].avg || 1;
+      rows.slice(0,8).forEach(r=>{
+        const row = document.createElement("div");
+        row.style.cssText="display:flex;align-items:center;gap:10px;padding:5px 0;";
+        row.innerHTML = `
+          <div style="width:130px;flex-shrink:0;font-size:12.5px;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${r.key}</div>
+          <div style="flex:1;height:6px;background:rgba(255,255,255,.06);border-radius:99px;overflow:hidden;">
+            <div style="height:100%;width:${Math.max(4,r.avg/maxAvg*100)}%;background:var(--accent);border-radius:99px;"></div>
+          </div>
+          <div style="width:80px;flex-shrink:0;text-align:right;font-size:12px;color:var(--ink-soft);">${r.avg.toFixed(1)}% · ${r.count}</div>`;
+        wrap.appendChild(row);
+      });
+    }
+    return wrap;
+  }
+  const rankPanel = document.createElement("div"); rankPanel.className="panel";
+  const rankGrid = document.createElement("div");
+  rankGrid.style.cssText="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:22px;";
+  rankGrid.appendChild(miniRanking("Ranking exacto por pilar", byPilar, "Cargá el pilar de cada pieza para ver este ranking."));
+  rankGrid.appendChild(miniRanking("Ranking exacto por música", byMusica, "Cargá la música de cada pieza para ver este ranking."));
+  rankPanel.appendChild(rankGrid);
+  container.appendChild(rankPanel);
+
+  // callouts: por qué funcionó (top 3) y por qué no (bottom 3)
+  function calloutPanel(title, list, tone){
+    const p = document.createElement("div"); p.className="panel";
+    p.innerHTML = `<h2 style="margin:0 0 10px;">${title}</h2>`;
+    list.forEach(c=>{
+      const eng = engagementRate(c);
+      const card = document.createElement("div");
+      card.style.cssText="border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin-bottom:8px;";
+      card.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:4px;flex-wrap:wrap;">
+          <div style="font-weight:600;font-size:13px;">${c.tema||"(sin tema)"}</div>
+          <span class="eng-cell ${tone}" style="font-size:12px;">${eng.toFixed(1)}% engagement</span>
+        </div>
+        <div style="font-size:11.5px;color:var(--ink-soft);margin-bottom:6px;">${c.category||"—"} · ${c.music||"sin música"} · ${fmtMoney(numOrNull(c.views)||0)} vistas</div>
+        <div style="font-size:12.5px;color:${c.notes?"var(--ink)":"var(--ink-soft)"};font-style:${c.notes?"normal":"italic"};">${c.notes || "Todavía no escribiste por qué — completá la Conclusión en Contenido → Reels/Carruseles."}</div>`;
+      p.appendChild(card);
+    });
+    if(list.length===0){ const e=document.createElement("div"); e.className="empty"; e.textContent="Sin datos."; p.appendChild(e); }
+    container.appendChild(p);
+  }
+  calloutPanel("Top 3 — por qué funcionaron", ranked.slice(0,3), "eng-hi");
+  calloutPanel("Últimos 3 — por qué no funcionaron", ranked.slice(-3).reverse(), "eng-lo");
 }
 
 function renderReelsPanel(container){
   const panel = document.createElement("div"); panel.className="panel";
   const head = document.createElement("div");
-  head.style.cssText="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;";
-  head.innerHTML=`<h2 style="margin:0;">Reels / Carruseles</h2>`;
+  head.style.cssText="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;flex-wrap:wrap;gap:10px;";
+  head.innerHTML=`<div><h2 style="margin:0;">Reels / Carruseles</h2>
+    <div style="font-size:12px;color:var(--ink-soft);margin-top:2px;">Registrá cada pieza publicada y anotá por qué funcionó o no — de ahí sale el panel de abajo.</div></div>`;
   const addBtn = document.createElement("button");
-  addBtn.className="btn small"; addBtn.textContent="+ Nueva pieza";
+  addBtn.className="btn small"; addBtn.textContent="+ Nueva pieza"; addBtn.style.flexShrink="0";
   addBtn.onclick=()=>{
     DATA.content.unshift({
       id:uid(), date:todayISO(), format:"Reel", category:"Reflexión", tema:"", music:"", hook:"",
-      views:"", likes:"", saves:"", shares:"", comments:"", newFollowers:"", status:"Prueba", notes:""
+      views:"", likes:"", saves:"", shares:"", comments:"", reach:"", newFollowers:"", status:"Prueba", notes:""
     });
     save(); renderAll();
   };
@@ -3172,41 +3370,97 @@ function renderReelsPanel(container){
   panel.appendChild(head);
 
   if(DATA.content.length===0){
-    const e=document.createElement("div"); e.className="empty"; e.textContent="Todavía no cargaste reels ni carruseles.";
+    const e=document.createElement("div"); e.className="empty"; e.style.marginTop="10px"; e.textContent="Todavía no cargaste reels ni carruseles.";
     panel.appendChild(e);
   } else {
-    const tableWrap = document.createElement("div"); tableWrap.style.overflowX="auto";
+    const tableWrap = document.createElement("div"); tableWrap.style.cssText="overflow-x:auto;max-height:640px;overflow-y:auto;margin-top:10px;";
     const table = document.createElement("table");
-    table.className = "rtable";
+    table.className = "rtable content-table";
     table.innerHTML = `<thead><tr>
-      <th>Fecha</th><th>Tipo</th><th>Categoría</th><th>Tema</th><th>Música</th><th>Hook</th>
-      <th style="text-align:right;">Vistas</th><th style="text-align:right;">Likes</th><th style="text-align:right;">Guardados</th>
-      <th style="text-align:right;">Compartidos</th><th style="text-align:right;">Comentarios</th><th style="text-align:right;">Nuevos seg.</th>
-      <th>Estado</th><th>Notas</th><th></th>
+      <th>Fecha</th><th>Tipo</th><th>Pilar</th><th class="col-wide">Tema</th><th>Música</th><th class="col-wide">Hook</th>
+      <th style="text-align:right;">Vistas</th><th style="text-align:right;">Likes</th><th style="text-align:right;">Guard.</th>
+      <th style="text-align:right;">Compart.</th><th style="text-align:right;">Coment.</th><th style="text-align:right;">Alcance</th>
+      <th style="text-align:right;">Nuevos seg.</th><th style="text-align:right;">Engag.</th>
+      <th>Estado</th><th class="col-wide">Conclusión — ¿por qué funcionó?</th><th></th>
     </tr></thead>`;
     const tbody = document.createElement("tbody");
     DATA.content.forEach(c=>{
-      if(c.status===undefined) c.status = "Prueba";
+      migrateContentItem(c);
       const tr = document.createElement("tr");
-      const mk = (label,val,onCh,ph,w)=>{ const cell=td(label, makeTextInput(val,onCh,"text",ph||"")); cell.querySelector("input").style.minWidth=(w||110)+"px"; return cell; };
-      const mkNum = (label,val,onCh)=>{ const inp=makeTextInput(val,onCh,"text",""); inp.setAttribute("inputmode","decimal"); inp.style.textAlign="right"; inp.style.minWidth="60px"; const cell=td(label, inp); cell.style.textAlign="right"; return cell; };
+      const mk = (label,val,onCh,ph,w,cls)=>{ const cell=td(label, makeTextInput(val,onCh,"text",ph||"")); cell.querySelector("input").style.minWidth=(w||110)+"px"; if(cls) cell.className=cls; return cell; };
+      const mkNum = (label,val,onCh)=>{ const inp=makeTextInput(val,onCh,"text",""); inp.setAttribute("inputmode","decimal"); inp.style.textAlign="right"; inp.style.minWidth="60px"; const cell=td(label, inp); cell.style.textAlign="right"; cell.className="col-tight"; return cell; };
 
-      tr.appendChild(td("Fecha", makeTextInput(c.date, v=>{c.date=v; save();}, "date")));
-      tr.appendChild(td("Tipo", makeSelect(c.format||"Reel", CONTENT_FORMATS, v=>{c.format=v; save();})));
-      tr.appendChild(td("Categoría", makeSelect(c.category||"Reflexión", CONTENT_CATEGORIES, v=>{c.category=v; save();})));
-      tr.appendChild(mk("Tema", c.tema, v=>{c.tema=v; save();}, "Tema", 180));
+      const dateCell = td("Fecha", makeTextInput(c.date, v=>{c.date=v; save();}, "date")); dateCell.className="col-select"; dateCell.querySelector("input").style.minWidth="128px";
+      tr.appendChild(dateCell);
+      const tipoCell = td("Tipo", makeSelect(c.format||"Reel", CONTENT_FORMATS, v=>{c.format=v; save();})); tipoCell.className="col-select";
+      tr.appendChild(tipoCell);
+      const pilarCell = td("Pilar", makeSelect(c.category||"Reflexión", CONTENT_CATEGORIES, v=>{c.category=v; save();})); pilarCell.className="col-select"; pilarCell.querySelector("select").style.minWidth="150px";
+      tr.appendChild(pilarCell);
+      tr.appendChild(mk("Tema", c.tema, v=>{c.tema=v; save();}, "Tema", 170, "col-wide"));
       tr.appendChild(mk("Música", c.music, v=>{c.music=v; save();}, "Música", 100));
-      tr.appendChild(mk("Hook", c.hook, v=>{c.hook=v; save();}, "Hook", 150));
+      tr.appendChild(mk("Hook", c.hook, v=>{c.hook=v; save();}, "Hook", 160, "col-wide"));
       tr.appendChild(mkNum("Vistas", c.views, v=>{c.views=v; save();}));
       tr.appendChild(mkNum("Likes", c.likes, v=>{c.likes=v; save();}));
       tr.appendChild(mkNum("Guardados", c.saves, v=>{c.saves=v; save();}));
       tr.appendChild(mkNum("Compartidos", c.shares, v=>{c.shares=v; save();}));
       tr.appendChild(mkNum("Comentarios", c.comments, v=>{c.comments=v; save();}));
+      tr.appendChild(mkNum("Alcance", c.reach, v=>{c.reach=v; save();}));
       tr.appendChild(mkNum("Nuevos seg.", c.newFollowers, v=>{c.newFollowers=v; save();}));
-      tr.appendChild(td("Estado", makeContentStatusSelect(c.status, v=>{c.status=v; save();})));
-      tr.appendChild(mk("Notas", c.notes, v=>{c.notes=v; save();}, "Notas", 140));
+
+      const eng = engagementRate(c);
+      const engCell = document.createElement("td"); engCell.dataset.label = "Engagement";
+      engCell.style.textAlign="right";
+      engCell.innerHTML = eng===null ? `<span style="color:var(--ink-soft);">—</span>` : `<span class="eng-cell ${eng>=8?"eng-hi":"eng-lo"}">${eng.toFixed(1)}%</span>`;
+      tr.appendChild(engCell);
+
+      const estadoCell = td("Estado", makeContentStatusSelect(c.status, v=>{c.status=v; save();})); estadoCell.className="col-select"; estadoCell.querySelector("select").style.minWidth="118px";
+      tr.appendChild(estadoCell);
+      tr.appendChild(mk("Conclusión", c.notes, v=>{c.notes=v; save();}, "¿Qué aprendiste de esta pieza?", 200, "col-wide"));
       const del=document.createElement("button"); del.className="iconbtn"; del.textContent="✕";
       del.onclick=()=>{ softDelete("content", c); };
+      tr.appendChild(td(null, del));
+      tbody.appendChild(tr);
+    });
+    table.appendChild(tbody);
+    tableWrap.appendChild(table);
+    panel.appendChild(tableWrap);
+  }
+  container.appendChild(panel);
+}
+
+function renderHipotesisPanel(container){
+  const panel = document.createElement("div"); panel.className="panel";
+  const head = document.createElement("div");
+  head.style.cssText="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;flex-wrap:wrap;gap:10px;";
+  head.innerHTML=`<div><h2 style="margin:0;">Hipótesis</h2>
+    <div style="font-size:12px;color:var(--ink-soft);margin-top:2px;">Qué variable estás probando a propósito, y qué concluiste después.</div></div>`;
+  const addBtn = document.createElement("button");
+  addBtn.className="btn small"; addBtn.textContent="+ Nueva hipótesis"; addBtn.style.flexShrink="0";
+  addBtn.onclick=()=>{
+    DATA.hypotheses.unshift({id:uid(), variable:"", test:"", expected:"", conclusion:""});
+    save(); renderAll();
+  };
+  head.appendChild(addBtn);
+  panel.appendChild(head);
+
+  if(DATA.hypotheses.length===0){
+    const e=document.createElement("div"); e.className="empty"; e.style.marginTop="10px";
+    e.textContent="Sin hipótesis cargadas. Ej: \"Música — Jazz vs Guitarra acústica — ¿cuál retiene más?\"";
+    panel.appendChild(e);
+  } else {
+    const tableWrap = document.createElement("div"); tableWrap.style.cssText="overflow-x:auto;margin-top:10px;";
+    const table = document.createElement("table"); table.className="rtable content-table";
+    table.innerHTML = `<thead><tr><th>Variable</th><th class="col-wide">Qué probar</th><th class="col-wide">Resultado esperado</th><th class="col-wide">Conclusión</th><th></th></tr></thead>`;
+    const tbody = document.createElement("tbody");
+    DATA.hypotheses.forEach(h=>{
+      const tr = document.createElement("tr");
+      const mk = (label,val,onCh,ph)=>{ const cell=td(label, makeTextInput(val,onCh,"text",ph||"")); cell.className="col-wide"; return cell; };
+      tr.appendChild(td("Variable", makeTextInput(h.variable, v=>{h.variable=v; save();}, "text", "Música, horario, tema...")));
+      tr.appendChild(mk("Qué probar", h.test, v=>{h.test=v; save();}, "ej: Jazz vs Guitarra acústica"));
+      tr.appendChild(mk("Resultado esperado", h.expected, v=>{h.expected=v; save();}, "Qué esperás que pase"));
+      tr.appendChild(mk("Conclusión", h.conclusion, v=>{h.conclusion=v; save();}, "Qué pasó realmente"));
+      const del=document.createElement("button"); del.className="iconbtn"; del.textContent="✕";
+      del.onclick=()=>{ DATA.hypotheses = DATA.hypotheses.filter(x=>x.id!==h.id); save(); renderAll(); };
       tr.appendChild(td(null, del));
       tbody.appendChild(tr);
     });
