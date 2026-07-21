@@ -29,6 +29,8 @@
     --amber-soft:rgba(251,191,36,.14);
     --red:#fb7185;
     --red-soft:rgba(251,113,133,.14);
+    --flame:#ff8a3d;
+    --flame-soft:rgba(255,138,61,.14);
     --radius:14px;
   }
   *{box-sizing:border-box;}
@@ -255,6 +257,12 @@
   .content-table .col-wide .cell-input{min-width:170px;}
   .content-table .col-select .cell-input{min-width:112px;}
   .content-table td{white-space:nowrap;}
+  .content-table tbody tr.top-performer{background:var(--flame-soft); box-shadow:inset 3px 0 0 var(--flame);}
+  .content-table tbody tr.top-performer:hover{background:rgba(255,138,61,.2);}
+  .top-star{background:none; border:none; cursor:pointer; font-size:16px; line-height:1; padding:4px; color:var(--ink-soft); transition:transform .1s ease;}
+  .top-star:hover{transform:scale(1.15);}
+  .top-star.on{color:var(--flame);}
+  .top-badge{display:inline-block; margin-left:6px; font-size:10.5px; font-weight:700; color:var(--flame); background:rgba(255,138,61,.16); border-radius:20px; padding:2px 8px; vertical-align:middle;}
   input[type=text], input[type=date], input[type=number], select, textarea{
     font-family:inherit;
     font-size:13px;
@@ -3135,6 +3143,7 @@ function migrateContentItem(c){
   if(c.status===undefined) c.status = "Prueba";
   if(c.reach===undefined) c.reach = "";
   if(c.notes===undefined) c.notes = "";
+  if(c.topPerformer===undefined) c.topPerformer = false;
 }
 // engagement = (likes+comentarios+guardados+compartidos) / vistas — mide qué tan bien resonó,
 // no solo cuánto alcance tuvo (un reel viral por el algoritmo puede tener bajo engagement real)
@@ -3414,13 +3423,13 @@ function renderReelsPanel(container){
   const head = document.createElement("div");
   head.style.cssText="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;flex-wrap:wrap;gap:10px;";
   head.innerHTML=`<div><h2 style="margin:0;">Reels / Carruseles</h2>
-    <div style="font-size:12px;color:var(--ink-soft);margin-top:2px;">Registrá cada pieza publicada y anotá por qué funcionó o no — de ahí sale el panel de abajo.</div></div>`;
+    <div style="font-size:12px;color:var(--ink-soft);margin-top:2px;">Registrá cada pieza publicada y anotá por qué funcionó o no — de ahí sale el panel de abajo. Marcá con <span style="color:var(--flame);">★</span> lo que más funcionó para identificarlo rápido.</div></div>`;
   const addBtn = document.createElement("button");
   addBtn.className="btn small"; addBtn.textContent="+ Nueva pieza"; addBtn.style.flexShrink="0";
   addBtn.onclick=()=>{
     DATA.content.unshift({
       id:uid(), date:todayISO(), format:"Reel", category:"Reflexión", tema:"", music:"", hook:"",
-      views:"", likes:"", saves:"", shares:"", comments:"", reach:"", newFollowers:"", status:"Prueba", notes:""
+      views:"", likes:"", saves:"", shares:"", comments:"", reach:"", newFollowers:"", status:"Prueba", notes:"", topPerformer:false
     });
     save(); renderAll();
   };
@@ -3435,6 +3444,7 @@ function renderReelsPanel(container){
     const table = document.createElement("table");
     table.className = "rtable content-table";
     table.innerHTML = `<thead><tr>
+      <th title="Marcar como top performer">★</th>
       <th>Fecha</th><th>Tipo</th><th>Pilar</th><th class="col-wide">Tema</th><th>Música</th><th class="col-wide">Hook</th>
       <th style="text-align:right;">Vistas</th><th style="text-align:right;">Likes</th><th style="text-align:right;">Guard.</th>
       <th style="text-align:right;">Compart.</th><th style="text-align:right;">Coment.</th><th style="text-align:right;">Alcance</th>
@@ -3445,8 +3455,16 @@ function renderReelsPanel(container){
     DATA.content.forEach(c=>{
       migrateContentItem(c);
       const tr = document.createElement("tr");
+      if(c.topPerformer) tr.classList.add("top-performer");
       const mk = (label,val,onCh,ph,w,cls)=>{ const cell=td(label, makeTextInput(val,onCh,"text",ph||"")); cell.querySelector("input").style.minWidth=(w||110)+"px"; if(cls) cell.className=cls; return cell; };
       const mkNum = (label,val,onCh)=>{ const inp=makeTextInput(val,onCh,"text",""); inp.setAttribute("inputmode","decimal"); inp.style.textAlign="right"; inp.style.minWidth="60px"; const cell=td(label, inp); cell.style.textAlign="right"; cell.className="col-tight"; return cell; };
+
+      const starBtn = document.createElement("button");
+      starBtn.className = "top-star" + (c.topPerformer ? " on" : "");
+      starBtn.textContent = c.topPerformer ? "★" : "☆";
+      starBtn.title = c.topPerformer ? "Quitar de top performers" : "Marcar como top performer";
+      starBtn.onclick = ()=>{ c.topPerformer = !c.topPerformer; save(); renderAll(); };
+      tr.appendChild(td(null, starBtn));
 
       const dateCell = td("Fecha", makeTextInput(c.date, v=>{c.date=v; save();}, "date")); dateCell.className="col-select"; dateCell.querySelector("input").style.minWidth="128px";
       tr.appendChild(dateCell);
@@ -3454,7 +3472,9 @@ function renderReelsPanel(container){
       tr.appendChild(tipoCell);
       const pilarCell = td("Pilar", makeSelect(c.category||"Reflexión", CONTENT_CATEGORIES, v=>{c.category=v; save();})); pilarCell.className="col-select"; pilarCell.querySelector("select").style.minWidth="150px";
       tr.appendChild(pilarCell);
-      tr.appendChild(mk("Tema", c.tema, v=>{c.tema=v; save();}, "Tema", 170, "col-wide"));
+      const temaCell = mk("Tema", c.tema, v=>{c.tema=v; save();}, "Tema", 170, "col-wide");
+      if(c.topPerformer){ const badge=document.createElement("span"); badge.className="top-badge"; badge.textContent="🔥 Top"; temaCell.appendChild(badge); }
+      tr.appendChild(temaCell);
       tr.appendChild(mk("Música", c.music, v=>{c.music=v; save();}, "Música", 100));
       tr.appendChild(mk("Hook", c.hook, v=>{c.hook=v; save();}, "Hook", 160, "col-wide"));
       tr.appendChild(mkNum("Vistas", c.views, v=>{c.views=v; save();}));
