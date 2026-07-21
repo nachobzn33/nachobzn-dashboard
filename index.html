@@ -263,6 +263,21 @@
   .top-star:hover{transform:scale(1.15);}
   .top-star.on{color:var(--flame);}
   .top-badge{display:inline-block; margin-left:6px; font-size:10.5px; font-weight:700; color:var(--flame); background:rgba(255,138,61,.16); border-radius:20px; padding:2px 8px; vertical-align:middle;}
+  /* ---- Guiones (Estrategia) ---- */
+  .estado-btns{display:flex; gap:8px; flex-wrap:wrap;}
+  .estado-btn{
+    font-family:inherit; font-size:12px; font-weight:600; cursor:pointer;
+    padding:7px 13px; border-radius:8px; border:1px solid var(--line);
+    background:none; color:var(--ink-soft); transition:all .12s ease;
+  }
+  .estado-btn:hover{border-color:var(--ink-soft);}
+  .estado-btn.on-grey{background:rgba(255,255,255,.08); color:var(--ink); border-color:transparent;}
+  .estado-btn.on-amber{background:var(--amber-soft); color:var(--amber); border-color:transparent;}
+  .estado-btn.on-green{background:var(--green-soft); color:var(--green); border-color:transparent;}
+  .script-block{margin-bottom:2px;}
+  .script-block-label{font-size:11px; font-weight:700; color:var(--accent-1); text-transform:uppercase; letter-spacing:.03em; margin:0 0 5px;}
+  .script-filter-row{display:flex; gap:10px; flex-wrap:wrap; margin:10px 0 14px;}
+  .script-filter-row select{width:auto; min-width:150px;}
   input[type=text], input[type=date], input[type=number], select, textarea{
     font-family:inherit;
     font-size:13px;
@@ -601,6 +616,7 @@ function defaultData(){
     stories:[],
     contentPlan:[],
     hypotheses:[],
+    scripts:[],
     strategy:{vision:"", audience:"", pillars:"", edge:"", goals6m:""},
     notes:{scratch:"", entries:[]},
     events:[],
@@ -886,7 +902,7 @@ const TRASH_SECTION_LABEL = {
   invPurchases:"Inversiones · Compras y ventas", clients:"Clientes", tasks:"Tareas pendientes",
   events:"Calendario", stats:"Estadísticas", content:"Contenido · Reels y carruseles",
   stories:"Contenido · Historias", contentPlan:"Plan de contenido", notesEntries:"Notas mentales",
-  accounts:"Finanzas · Liquidez"
+  accounts:"Finanzas · Liquidez", scripts:"Estrategia · Guiones"
 };
 
 function labelForTrashItem(listKey, item){
@@ -904,6 +920,7 @@ function labelForTrashItem(listKey, item){
     case "contentPlan": return item.title || "Idea sin título";
     case "notesEntries": return (item.text || "").slice(0,70) || "Nota";
     case "accounts": return item.name || "Cuenta sin nombre";
+    case "scripts": return item.titulo || "Guion sin título";
     default: return "Elemento";
   }
 }
@@ -4308,6 +4325,199 @@ function renderEstrategia(container){
     ta.oninput = ()=>{ DATA.strategy[key]=ta.value; save(); };
     panel.appendChild(ta);
   });
+  container.appendChild(panel);
+  renderGuionesPanel(container);
+}
+
+/* ---------- GUIONES (Estrategia) ----------
+   Guiones de contenido en formato de tarjeta, con bloques estructurados
+   (Gancho, Historia/Contexto, Moraleja, Solución, Cierre, CTA) y un estado
+   de producción persistido en Supabase (mismo blob jsonb que el resto del
+   dashboard — no una tabla SQL aparte, para no romper el sync/papelera que
+   ya usan todas las demás secciones). */
+const GUION_PILLARS = ["Valor","Reflexión","Conexión","Series"];
+const GUION_PILLAR_COLOR = {
+  "Valor": PILLAR_COLOR["Valor"],
+  "Reflexión": PILLAR_COLOR["Reflexión"],
+  "Conexión": PILLAR_COLOR["Conexión"],
+  "Series": "#0ea5e9",
+};
+const GUION_ESTADOS = ["no_resuelto","en_proceso","hecho"];
+const GUION_ESTADO_LABEL = {no_resuelto:"Aún no resuelto", en_proceso:"En proceso", hecho:"Hecho"};
+const GUION_ESTADO_COLOR = {no_resuelto:"grey", en_proceso:"amber", hecho:"green"};
+const GUION_BLOCKS = [
+  ["gancho","Gancho"],
+  ["historia","Historia / Contexto"],
+  ["moraleja","Moraleja"],
+  ["solucion","Solución"],
+  ["cierre","Cierre"],
+  ["cta","Llamado a la acción"],
+];
+
+function migrateScriptItem(s){
+  if(s.pilar===undefined) s.pilar = "Valor";
+  if(s.duracion===undefined) s.duracion = "";
+  if(s.estado===undefined) s.estado = "no_resuelto";
+  if(s.bloques===undefined) s.bloques = {};
+  GUION_BLOCKS.forEach(([key])=>{ if(s.bloques[key]===undefined) s.bloques[key] = ""; });
+  if(s.guionCorrido===undefined) s.guionCorrido = "";
+  if(s.notas===undefined) s.notas = "";
+  if(s.createdAt===undefined) s.createdAt = new Date().toISOString();
+  if(s.updatedAt===undefined) s.updatedAt = s.createdAt;
+}
+
+let expandedScriptIds = new Set();
+let scriptFilterPilar = "Todos";
+let scriptFilterEstado = "Todos";
+
+function setScriptEstado(s, estado){
+  s.estado = estado;
+  s.updatedAt = new Date().toISOString();
+  save(); renderAll();
+}
+
+function renderScriptCard(s, parent){
+  migrateScriptItem(s);
+  const expanded = expandedScriptIds.has(s.id);
+  const card = document.createElement("div");
+  card.className = "kcard" + (expanded ? " expanded" : "");
+  card.style.marginBottom = "8px";
+  const pColor = GUION_PILLAR_COLOR[s.pilar] || "var(--line)";
+  card.style.borderLeft = "3px solid " + pColor;
+  card.style.borderTopLeftRadius = "0";
+  card.style.borderBottomLeftRadius = "0";
+
+  const headEl = document.createElement("div"); headEl.className="kcard-head"; headEl.style.cursor="pointer";
+  headEl.innerHTML = `
+    <div class="kcard-title-row">
+      <div class="kcard-title-text" style="flex:1;">
+        <div style="font-weight:600;font-size:15px;">${s.titulo || "(sin título)"}</div>
+        <div style="font-size:11px;color:var(--ink-soft);margin-top:4px;display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
+          <span style="display:inline-flex;align-items:center;gap:5px;"><span style="width:7px;height:7px;border-radius:50%;background:${pColor};display:inline-block;"></span>${s.pilar}</span>
+          ${s.duracion ? `<span>· ${s.duracion}</span>` : ""}
+        </div>
+      </div>
+      <span class="tag ${GUION_ESTADO_COLOR[s.estado]}">${GUION_ESTADO_LABEL[s.estado]}</span>
+      <span class="kcard-chevron">▾</span>
+    </div>`;
+  headEl.onclick = (e)=>{
+    if(e.target.closest("select") || e.target.closest("input") || e.target.closest("button") || e.target.closest("textarea")) return;
+    if(expanded) expandedScriptIds.delete(s.id); else expandedScriptIds.add(s.id);
+    renderAll();
+  };
+  card.appendChild(headEl);
+
+  const body = document.createElement("div"); body.className="kcard-body";
+
+  const row1 = document.createElement("div"); row1.style.cssText="display:flex;gap:8px;flex-wrap:wrap;";
+  const titleInp = makeTextInput(s.titulo, v=>{s.titulo=v; s.updatedAt=new Date().toISOString(); save();}, "text","Título del guion"); titleInp.style.flex="1"; titleInp.style.minWidth="180px";
+  row1.appendChild(titleInp);
+  const pilarSel = makeSelect(s.pilar, GUION_PILLARS, v=>{s.pilar=v; s.updatedAt=new Date().toISOString(); save(); renderAll();}); pilarSel.style.maxWidth="160px";
+  row1.appendChild(pilarSel);
+  const durInp = makeTextInput(s.duracion, v=>{s.duracion=v; s.updatedAt=new Date().toISOString(); save();}, "text","ej: 40-45 seg"); durInp.style.maxWidth="130px";
+  row1.appendChild(durInp);
+  body.appendChild(row1);
+
+  GUION_BLOCKS.forEach(([key,label])=>{
+    const blockWrap = document.createElement("div"); blockWrap.className="script-block";
+    const lab = document.createElement("div"); lab.className="script-block-label"; lab.textContent=label;
+    blockWrap.appendChild(lab);
+    const ta = document.createElement("textarea"); ta.style.minHeight="60px";
+    ta.value = s.bloques[key]||""; ta.placeholder=label+"...";
+    ta.oninput = ()=>{ s.bloques[key]=ta.value; s.updatedAt=new Date().toISOString(); save(); };
+    blockWrap.appendChild(ta);
+    body.appendChild(blockWrap);
+  });
+
+  const notasWrap = document.createElement("div"); notasWrap.className="script-block";
+  const notasLab = document.createElement("div"); notasLab.className="script-block-label"; notasLab.textContent="Notas de dirección / visuales (opcional)";
+  notasWrap.appendChild(notasLab);
+  const notasTa = document.createElement("textarea"); notasTa.style.minHeight="46px";
+  notasTa.value = s.notas||""; notasTa.placeholder="Planos, referencias visuales, música, timing...";
+  notasTa.oninput = ()=>{ s.notas=notasTa.value; s.updatedAt=new Date().toISOString(); save(); };
+  notasWrap.appendChild(notasTa);
+  body.appendChild(notasWrap);
+
+  const corridoWrap = document.createElement("div"); corridoWrap.className="script-block";
+  const corridoLab = document.createElement("div"); corridoLab.className="script-block-label"; corridoLab.textContent="Guion corrido — para leer al grabar";
+  corridoWrap.appendChild(corridoLab);
+  const corridoTa = document.createElement("textarea"); corridoTa.style.minHeight="120px";
+  corridoTa.value = s.guionCorrido||""; corridoTa.placeholder="Versión corrida, lista para leer en cámara...";
+  corridoTa.oninput = ()=>{ s.guionCorrido=corridoTa.value; s.updatedAt=new Date().toISOString(); save(); };
+  corridoWrap.appendChild(corridoTa);
+  body.appendChild(corridoWrap);
+
+  const estadoWrap = document.createElement("div"); estadoWrap.className="script-block";
+  const estadoLab = document.createElement("div"); estadoLab.className="script-block-label"; estadoLab.textContent="Estado";
+  estadoWrap.appendChild(estadoLab);
+  const estadoBtns = document.createElement("div"); estadoBtns.className="estado-btns";
+  GUION_ESTADOS.forEach(e=>{
+    const b = document.createElement("button");
+    b.className = "estado-btn" + (s.estado===e ? " on-"+GUION_ESTADO_COLOR[e] : "");
+    b.textContent = GUION_ESTADO_LABEL[e];
+    b.onclick = ()=> setScriptEstado(s, e);
+    estadoBtns.appendChild(b);
+  });
+  estadoWrap.appendChild(estadoBtns);
+  body.appendChild(estadoWrap);
+
+  const delBtn = document.createElement("button"); delBtn.className="btn ghost small"; delBtn.textContent="Eliminar guion";
+  delBtn.style.alignSelf="flex-start";
+  delBtn.onclick = ()=>{ softDelete("scripts", s); };
+  body.appendChild(delBtn);
+
+  card.appendChild(body);
+  parent.appendChild(card);
+}
+
+function renderGuionesPanel(container){
+  const panel = document.createElement("div"); panel.className="panel";
+  const head = document.createElement("div");
+  head.style.cssText="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;flex-wrap:wrap;gap:10px;";
+  head.innerHTML = `<div><h2 style="margin:0;">Guiones</h2>
+    <div style="font-size:12px;color:var(--ink-soft);margin-top:2px;">Guiones estructurados listos para filmar. Marcá el estado y queda guardado.</div></div>`;
+  const addBtn = document.createElement("button");
+  addBtn.className="btn small"; addBtn.textContent="+ Nuevo guion"; addBtn.style.flexShrink="0";
+  addBtn.onclick = ()=>{
+    const s = {
+      id:uid(), titulo:"", pilar:"Valor", duracion:"", estado:"no_resuelto",
+      bloques:{gancho:"",historia:"",moraleja:"",solucion:"",cierre:"",cta:""},
+      guionCorrido:"", notas:"",
+      createdAt:new Date().toISOString(), updatedAt:new Date().toISOString(),
+    };
+    DATA.scripts.unshift(s);
+    expandedScriptIds.add(s.id);
+    save(); renderAll();
+  };
+  head.appendChild(addBtn);
+  panel.appendChild(head);
+
+  const filterRow = document.createElement("div"); filterRow.className="script-filter-row";
+  filterRow.appendChild(makeSelect(scriptFilterPilar, ["Todos",...GUION_PILLARS], v=>{scriptFilterPilar=v; renderAll();}));
+  const estadoOptions = ["Todos", ...GUION_ESTADOS.map(e=>GUION_ESTADO_LABEL[e])];
+  const estadoLabelToKey = Object.fromEntries(GUION_ESTADOS.map(e=>[GUION_ESTADO_LABEL[e],e]));
+  const estadoFilterCurrentLabel = scriptFilterEstado==="Todos" ? "Todos" : GUION_ESTADO_LABEL[scriptFilterEstado];
+  filterRow.appendChild(makeSelect(estadoFilterCurrentLabel, estadoOptions, v=>{scriptFilterEstado = v==="Todos" ? "Todos" : estadoLabelToKey[v]; renderAll();}));
+  panel.appendChild(filterRow);
+
+  const filtered = DATA.scripts.filter(s=>{
+    migrateScriptItem(s);
+    if(scriptFilterPilar!=="Todos" && s.pilar!==scriptFilterPilar) return false;
+    if(scriptFilterEstado!=="Todos" && s.estado!==scriptFilterEstado) return false;
+    return true;
+  });
+
+  if(DATA.scripts.length===0){
+    const e=document.createElement("div"); e.className="empty"; e.textContent="Todavía no cargaste ningún guion.";
+    panel.appendChild(e);
+  } else if(filtered.length===0){
+    const e=document.createElement("div"); e.className="empty"; e.textContent="Ningún guion coincide con el filtro.";
+    panel.appendChild(e);
+  } else {
+    const wrap = document.createElement("div"); wrap.style.marginTop="10px";
+    filtered.forEach(s=> renderScriptCard(s, wrap));
+    panel.appendChild(wrap);
+  }
   container.appendChild(panel);
 }
 
