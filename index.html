@@ -3217,8 +3217,8 @@ function renderMobileContenidoSummary(container){
 
   const reelsPending = DATA.content.filter(c=>(c.status||"Prueba")==="No subido").length;
   const reelsPublishedMonth = DATA.content.filter(c=>(c.status||"Prueba")==="Realizado" && isThisMonth(c.date)).length;
-  const storiesPending = DATA.stories.filter(s=>(s.uploaded||"No")==="No").length;
-  const storiesPublishedMonth = DATA.stories.filter(s=>(s.uploaded||"No")==="Sí" && isThisMonth(s.date)).length;
+  const storiesPending = DATA.stories.filter(s=>{ migrateStoryItem(s); return s.estado!=="finalizada"; }).length;
+  const storiesPublishedMonth = DATA.stories.filter(s=>{ migrateStoryItem(s); return s.estado==="finalizada" && isThisMonth(s.date); }).length;
 
   function miniCard(title, pendingLbl, pendingVal, doneLbl, doneVal){
     const c = document.createElement("div"); c.className="panel"; c.style.marginBottom="0";
@@ -3566,6 +3566,124 @@ function renderHipotesisPanel(container){
   container.appendChild(panel);
 }
 
+/* ---------- HISTORIAS ----------
+   Tarjetas colapsables (mismo patrón kcard que Guiones y Plan de contenido):
+   título en verde y prominente, fecha discreta, tag de pilar, y un estado de
+   3 niveles que reemplaza al viejo toggle Sí/No de "subida". */
+const STORY_ESTADOS = ["en_proceso","hecha","finalizada"];
+const STORY_ESTADO_LABEL = {en_proceso:"En proceso", hecha:"Hecha", finalizada:"Finalizada"};
+const STORY_ESTADO_COLOR = {en_proceso:"grey", hecha:"amber", finalizada:"green"};
+
+function migrateStoryItem(s){
+  if(!Array.isArray(s.slides)) s.slides = ["","","","",""];
+  while(s.slides.length<5) s.slides.push("");
+  if(s.pillar===undefined) s.pillar = "";
+  if(s.estado===undefined) s.estado = (s.uploaded==="Sí") ? "finalizada" : "en_proceso";
+}
+
+let expandedStoryIds = new Set();
+
+function setStoryEstado(s, estado){
+  s.estado = estado;
+  save(); renderAll();
+}
+
+function renderStoryCard(s, parent){
+  migrateStoryItem(s);
+  const expanded = expandedStoryIds.has(s.id);
+  const card = document.createElement("div");
+  card.className = "kcard" + (expanded ? " expanded" : "");
+  card.style.marginBottom = "8px";
+
+  const headEl = document.createElement("div"); headEl.className="kcard-head"; headEl.style.cursor="pointer";
+  headEl.innerHTML = `
+    <div class="kcard-title-row">
+      <div class="kcard-title-text" style="flex:1;">
+        <div style="font-weight:700;font-size:15px;color:var(--accent-1);">${s.tema || "Historia sin título"}</div>
+        <div style="font-size:11px;color:var(--ink-soft);margin-top:4px;display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
+          <span class="tag grey">${s.pillar || "Sin categoría"}</span>
+          <span>${s.date ? fmtDateNice(s.date) : "Sin fecha"}</span>
+        </div>
+      </div>
+      <span class="tag ${STORY_ESTADO_COLOR[s.estado]}">${STORY_ESTADO_LABEL[s.estado]}</span>
+      <span class="kcard-chevron">▾</span>
+    </div>`;
+  headEl.onclick = (e)=>{
+    if(e.target.closest("select") || e.target.closest("input") || e.target.closest("button") || e.target.closest("textarea")) return;
+    if(expanded) expandedStoryIds.delete(s.id); else expandedStoryIds.add(s.id);
+    renderAll();
+  };
+  card.appendChild(headEl);
+
+  const body = document.createElement("div"); body.className="kcard-body";
+
+  const row1 = document.createElement("div"); row1.style.cssText="display:flex;gap:8px;flex-wrap:wrap;";
+  const temaInp = makeTextInput(s.tema, v=>{s.tema=v; save();}, "text", "Tema de la historia"); temaInp.style.flex="1"; temaInp.style.minWidth="180px";
+  row1.appendChild(temaInp);
+  const pillarSel = makeSelect(s.pillar || "Otro", CONTENT_CATEGORIES, v=>{s.pillar=v; save();}); pillarSel.style.maxWidth="160px";
+  row1.appendChild(pillarSel);
+  const dateInp = makeTextInput(s.date, v=>{s.date=v; save();}, "date"); dateInp.style.maxWidth="150px";
+  row1.appendChild(dateInp);
+  const viewsInp = makeTextInput(s.views, v=>{s.views=v; save();}, "text", "Views");
+  viewsInp.setAttribute("inputmode","decimal"); viewsInp.style.maxWidth="100px";
+  row1.appendChild(viewsInp);
+  body.appendChild(row1);
+
+  const slidesGrid = document.createElement("div");
+  slidesGrid.style.cssText="display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:8px;";
+  s.slides.forEach((txt,i)=>{
+    const wrap = document.createElement("div");
+    const lab = document.createElement("div"); lab.style.cssText="font-size:11px;color:var(--ink-soft);margin-bottom:3px;"; lab.textContent="Historia "+(i+1);
+    wrap.appendChild(lab);
+    const ta = document.createElement("textarea");
+    ta.style.minHeight="60px"; ta.placeholder="Texto / idea de esta historia...";
+    ta.value = txt||"";
+    ta.oninput = ()=>{ s.slides[i]=ta.value; save(); };
+    wrap.appendChild(ta);
+    slidesGrid.appendChild(wrap);
+  });
+  body.appendChild(slidesGrid);
+
+  const notesLab = document.createElement("div"); notesLab.style.cssText="font-size:11px;color:var(--ink-soft);"; notesLab.textContent="Notas";
+  body.appendChild(notesLab);
+  const notes = document.createElement("textarea");
+  notes.placeholder="Notas..."; notes.style.minHeight="46px";
+  notes.value = s.notes||"";
+  notes.oninput = ()=>{ s.notes=notes.value; save(); };
+  body.appendChild(notes);
+
+  const estadoWrap = document.createElement("div"); estadoWrap.className="script-block";
+  const estadoLab = document.createElement("div"); estadoLab.className="script-block-label"; estadoLab.textContent="Estado";
+  estadoWrap.appendChild(estadoLab);
+  const estadoBtns = document.createElement("div"); estadoBtns.className="estado-btns";
+  STORY_ESTADOS.forEach(e=>{
+    const b = document.createElement("button");
+    b.className = "estado-btn" + (s.estado===e ? " on-"+STORY_ESTADO_COLOR[e] : "");
+    b.textContent = STORY_ESTADO_LABEL[e];
+    b.onclick = ()=> setStoryEstado(s, e);
+    estadoBtns.appendChild(b);
+  });
+  estadoWrap.appendChild(estadoBtns);
+  body.appendChild(estadoWrap);
+
+  const actionsRow = document.createElement("div"); actionsRow.style.cssText="display:flex;gap:8px;";
+  const dupBtn = document.createElement("button"); dupBtn.className="btn ghost small"; dupBtn.textContent="Duplicar";
+  dupBtn.onclick = ()=>{
+    const copy = JSON.parse(JSON.stringify(s));
+    copy.id = uid(); copy.date = todayISO();
+    DATA.stories.unshift(copy);
+    save(); renderAll();
+  };
+  actionsRow.appendChild(dupBtn);
+  const delBtn = document.createElement("button"); delBtn.className="btn ghost small"; delBtn.textContent="Eliminar";
+  delBtn.onclick = ()=>{ softDelete("stories", s); };
+  actionsRow.appendChild(delBtn);
+  body.appendChild(actionsRow);
+
+  card.appendChild(body);
+  parent.appendChild(card);
+}
+
 function renderHistoriasPanel(container){
   const panel = document.createElement("div"); panel.className="panel";
   const head = document.createElement("div");
@@ -3574,7 +3692,9 @@ function renderHistoriasPanel(container){
   const addBtn = document.createElement("button");
   addBtn.className="btn small"; addBtn.textContent="+ Nueva historia";
   addBtn.onclick=()=>{
-    DATA.stories.unshift({id:uid(), date:todayISO(), tema:"", slides:["","","","",""], uploaded:"No", views:"", notes:""});
+    const s = {id:uid(), date:todayISO(), tema:"", pillar:"", slides:["","","","",""], estado:"en_proceso", views:"", notes:""};
+    DATA.stories.unshift(s);
+    expandedStoryIds.add(s.id);
     save(); renderAll();
   };
   head.appendChild(addBtn);
@@ -3583,60 +3703,11 @@ function renderHistoriasPanel(container){
   if(DATA.stories.length===0){
     const e=document.createElement("div"); e.className="empty"; e.textContent="Todavía no cargaste historias.";
     panel.appendChild(e);
+  } else {
+    const wrap = document.createElement("div"); wrap.style.marginTop="4px";
+    DATA.stories.forEach(s=> renderStoryCard(s, wrap));
+    panel.appendChild(wrap);
   }
-
-  DATA.stories.forEach(s=>{
-    if(!Array.isArray(s.slides)) s.slides = ["","","","",""];
-    while(s.slides.length<5) s.slides.push("");
-    if(s.pillar===undefined) s.pillar = "";
-
-    const card = document.createElement("div");
-    card.style.cssText="border:1px solid var(--line);border-radius:10px;padding:12px 14px;margin-bottom:10px;";
-
-    const top = document.createElement("div");
-    top.style.cssText="display:flex;gap:10px;align-items:center;margin-bottom:10px;flex-wrap:wrap;";
-    const dateInp = makeTextInput(s.date, v=>{s.date=v; save();}, "date"); dateInp.style.maxWidth="150px";
-    top.appendChild(dateInp);
-    const temaInp = makeTextInput(s.tema, v=>{s.tema=v; save();}, "text", "Tema");
-    temaInp.style.flex="1"; temaInp.style.fontWeight="600";
-    top.appendChild(temaInp);
-    const pillarWrap = document.createElement("div"); pillarWrap.style.minWidth="150px";
-    pillarWrap.appendChild(makeSelect(s.pillar || "Otro", CONTENT_CATEGORIES, v=>{s.pillar=v; save();}));
-    top.appendChild(pillarWrap);
-    const upWrap = document.createElement("div"); upWrap.style.minWidth="90px";
-    upWrap.appendChild(makeUploadedSelect(s.uploaded||"No", v=>{s.uploaded=v; save();}));
-    top.appendChild(upWrap);
-    const viewsInp = makeTextInput(s.views, v=>{s.views=v; save();}, "text", "Views");
-    viewsInp.setAttribute("inputmode","decimal"); viewsInp.style.maxWidth="100px";
-    top.appendChild(viewsInp);
-    const del = document.createElement("button"); del.className="iconbtn"; del.textContent="✕";
-    del.onclick=()=>{ softDelete("stories", s); };
-    top.appendChild(del);
-    card.appendChild(top);
-
-    const slidesGrid = document.createElement("div");
-    slidesGrid.style.cssText="display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:8px; margin-bottom:8px;";
-    s.slides.forEach((txt,i)=>{
-      const wrap = document.createElement("div");
-      const lab = document.createElement("div"); lab.style.cssText="font-size:11px;color:var(--ink-soft);margin-bottom:3px;"; lab.textContent="Historia "+(i+1);
-      wrap.appendChild(lab);
-      const ta = document.createElement("textarea");
-      ta.style.minHeight="60px"; ta.placeholder="Texto / idea de esta historia...";
-      ta.value = txt||"";
-      ta.oninput = ()=>{ s.slides[i]=ta.value; save(); };
-      wrap.appendChild(ta);
-      slidesGrid.appendChild(wrap);
-    });
-    card.appendChild(slidesGrid);
-
-    const notes = document.createElement("textarea");
-    notes.placeholder="Notas..."; notes.style.minHeight="46px";
-    notes.value = s.notes||"";
-    notes.oninput = ()=>{ s.notes=notes.value; save(); };
-    card.appendChild(notes);
-
-    panel.appendChild(card);
-  });
   container.appendChild(panel);
 }
 
