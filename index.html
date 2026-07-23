@@ -263,21 +263,36 @@
   .top-star:hover{transform:scale(1.15);}
   .top-star.on{color:var(--flame);}
   .top-badge{display:inline-block; margin-left:6px; font-size:10.5px; font-weight:700; color:var(--flame); background:rgba(255,138,61,.16); border-radius:20px; padding:2px 8px; vertical-align:middle;}
-  /* ---- Guiones (Estrategia) ---- */
-  .estado-btns{display:flex; gap:8px; flex-wrap:wrap;}
+  /* ---- Guiones (Estrategia) / Historias — botones de estado con color propio,
+     visible siempre (no solo al estar seleccionado) para poder previsualizar
+     antes de tocar. El estado "on-*" (elegido) se ve sólido; el resto se ve
+     apenas teñido con su propio color para anticipar qué representa cada uno. */
+  .estado-btns{display:flex; gap:7px; flex-wrap:wrap;}
   .estado-btn{
     font-family:inherit; font-size:12px; font-weight:600; cursor:pointer;
-    padding:7px 13px; border-radius:8px; border:1px solid var(--line);
-    background:none; color:var(--ink-soft); transition:all .12s ease;
+    padding:6px 12px; border-radius:99px; border:1px solid transparent;
+    background:rgba(255,255,255,.04); color:var(--ink-soft); transition:all .12s ease;
   }
-  .estado-btn:hover{border-color:var(--ink-soft);}
-  .estado-btn.on-grey{background:rgba(255,255,255,.08); color:var(--ink); border-color:transparent;}
-  .estado-btn.on-amber{background:var(--amber-soft); color:var(--amber); border-color:transparent;}
-  .estado-btn.on-green{background:var(--green-soft); color:var(--green); border-color:transparent;}
+  .estado-btn:hover{filter:brightness(1.25);}
+  .estado-btn.tint-grey{background:rgba(255,255,255,.06); color:var(--ink-soft); border-color:rgba(255,255,255,.12);}
+  .estado-btn.tint-amber{background:rgba(251,191,36,.08); color:var(--amber); border-color:rgba(251,191,36,.25);}
+  .estado-btn.tint-green{background:rgba(61,220,151,.08); color:var(--green); border-color:rgba(61,220,151,.25);}
+  .estado-btn.tint-red{background:rgba(251,113,133,.08); color:var(--red); border-color:rgba(251,113,133,.25);}
+  .estado-btn.on-grey{background:rgba(255,255,255,.14); color:var(--ink); border-color:transparent; font-weight:700;}
+  .estado-btn.on-amber{background:var(--amber); color:#1a1400; border-color:transparent; font-weight:700;}
+  .estado-btn.on-green{background:var(--green); color:#00160e; border-color:transparent; font-weight:700;}
+  .estado-btn.on-red{background:var(--red); color:#2b0006; border-color:transparent; font-weight:700;}
   .script-block{margin-bottom:2px;}
   .script-block-label{font-size:11px; font-weight:700; color:var(--accent-1); text-transform:uppercase; letter-spacing:.03em; margin:0 0 5px;}
   .script-filter-row{display:flex; gap:10px; flex-wrap:wrap; margin:10px 0 14px;}
   .script-filter-row select{width:auto; min-width:150px;}
+  /* tarjetas de Historias / Guiones — jerarquía: título grande arriba,
+     estado justo debajo (interactivo, sin necesidad de expandir), y recién
+     después la metadata secundaria (pilar, fecha) en chico y discreto. */
+  .kcard-v2 .kcard-head{padding:14px 15px 12px;}
+  .kcard-title-green{font-weight:700; font-size:16px; line-height:1.35; color:var(--accent-1); word-break:break-word;}
+  .kcard-meta-row-v2{font-size:11px; color:var(--ink-soft); margin-top:9px; display:flex; gap:7px; flex-wrap:wrap; align-items:center;}
+  .kcard-meta-row-v2 .tag{font-size:10.5px; padding:2px 8px;}
   input[type=text], input[type=date], input[type=number], select, textarea{
     font-family:inherit;
     font-size:13px;
@@ -3462,11 +3477,11 @@ function renderReelsPanel(container){
     table.className = "rtable content-table";
     table.innerHTML = `<thead><tr>
       <th title="Marcar como top performer">★</th>
-      <th>Fecha</th><th>Tipo</th><th>Pilar</th><th class="col-wide">Tema</th><th>Música</th><th class="col-wide">Hook</th>
+      <th>Tipo</th><th>Pilar</th><th class="col-wide">Tema</th><th>Música</th><th class="col-wide">Hook</th>
       <th style="text-align:right;">Vistas</th><th style="text-align:right;">Likes</th><th style="text-align:right;">Guard.</th>
       <th style="text-align:right;">Compart.</th><th style="text-align:right;">Coment.</th><th style="text-align:right;">Alcance</th>
       <th style="text-align:right;">Nuevos seg.</th><th style="text-align:right;">Engag.</th>
-      <th>Estado</th><th class="col-wide">Conclusión — ¿por qué funcionó?</th><th></th>
+      <th>Estado</th><th>Fecha</th><th class="col-wide">Conclusión — ¿por qué funcionó?</th><th></th>
     </tr></thead>`;
     const tbody = document.createElement("tbody");
     DATA.content.forEach(c=>{
@@ -3483,8 +3498,6 @@ function renderReelsPanel(container){
       starBtn.onclick = ()=>{ c.topPerformer = !c.topPerformer; save(); renderAll(); };
       tr.appendChild(td(null, starBtn));
 
-      const dateCell = td("Fecha", makeTextInput(c.date, v=>{c.date=v; save();}, "date")); dateCell.className="col-select"; dateCell.querySelector("input").style.minWidth="128px";
-      tr.appendChild(dateCell);
       const tipoCell = td("Tipo", makeSelect(c.format||"Reel", CONTENT_FORMATS, v=>{c.format=v; save();})); tipoCell.className="col-select";
       tr.appendChild(tipoCell);
       const pilarCell = td("Pilar", makeSelect(c.category||"Reflexión", CONTENT_CATEGORIES, v=>{c.category=v; save();})); pilarCell.className="col-select"; pilarCell.querySelector("select").style.minWidth="150px";
@@ -3510,6 +3523,8 @@ function renderReelsPanel(container){
 
       const estadoCell = td("Estado", makeContentStatusSelect(c.status, v=>{c.status=v; save();})); estadoCell.className="col-select"; estadoCell.querySelector("select").style.minWidth="118px";
       tr.appendChild(estadoCell);
+      const dateCell = td("Fecha", makeTextInput(c.date, v=>{c.date=v; save();}, "date")); dateCell.className="col-select"; dateCell.querySelector("input").style.minWidth="128px"; dateCell.style.opacity="0.7";
+      tr.appendChild(dateCell);
       tr.appendChild(mk("Conclusión", c.notes, v=>{c.notes=v; save();}, "¿Qué aprendiste de esta pieza?", 200, "col-wide"));
       const del=document.createElement("button"); del.className="iconbtn"; del.textContent="✕";
       del.onclick=()=>{ softDelete("content", c); };
@@ -3568,17 +3583,19 @@ function renderHipotesisPanel(container){
 
 /* ---------- HISTORIAS ----------
    Tarjetas colapsables (mismo patrón kcard que Guiones y Plan de contenido):
-   título en verde y prominente, fecha discreta, tag de pilar, y un estado de
-   3 niveles que reemplaza al viejo toggle Sí/No de "subida". */
-const STORY_ESTADOS = ["en_proceso","hecha","finalizada"];
-const STORY_ESTADO_LABEL = {en_proceso:"En proceso", hecha:"Hecha", finalizada:"Finalizada"};
-const STORY_ESTADO_COLOR = {en_proceso:"grey", hecha:"amber", finalizada:"green"};
+   título grande en verde arriba de todo, el estado (con color propio, siempre
+   visible para poder previsualizar) justo debajo — clickeable sin tener que
+   expandir — y recién después la metadata secundaria (pilar, fecha) chica y
+   discreta. Reemplaza al viejo toggle Sí/No de "subida". */
+const STORY_ESTADOS = ["en_proceso","hecha","descartada"];
+const STORY_ESTADO_LABEL = {en_proceso:"En proceso", hecha:"Hecha", descartada:"Descartada"};
+const STORY_ESTADO_COLOR = {en_proceso:"grey", hecha:"green", descartada:"red"};
 
 function migrateStoryItem(s){
   if(!Array.isArray(s.slides)) s.slides = ["","","","",""];
   while(s.slides.length<5) s.slides.push("");
   if(s.pillar===undefined) s.pillar = "";
-  if(s.estado===undefined) s.estado = (s.uploaded==="Sí") ? "finalizada" : "en_proceso";
+  if(s.estado===undefined || s.estado==="finalizada") s.estado = (s.uploaded==="Sí" || s.estado==="finalizada") ? "hecha" : "en_proceso";
 }
 
 let expandedStoryIds = new Set();
@@ -3588,26 +3605,48 @@ function setStoryEstado(s, estado){
   save(); renderAll();
 }
 
+// textarea que crece con el contenido, para poder leer la historia entera
+// sin tener que hacer scroll adentro de una caja chica.
+function autoGrow(ta){
+  ta.style.height = "auto";
+  ta.style.height = Math.max(ta.scrollHeight, 60) + "px";
+}
+
 function renderStoryCard(s, parent){
   migrateStoryItem(s);
   const expanded = expandedStoryIds.has(s.id);
   const card = document.createElement("div");
-  card.className = "kcard" + (expanded ? " expanded" : "");
-  card.style.marginBottom = "8px";
+  card.className = "kcard kcard-v2" + (expanded ? " expanded" : "");
+  card.style.marginBottom = "10px";
 
   const headEl = document.createElement("div"); headEl.className="kcard-head"; headEl.style.cursor="pointer";
-  headEl.innerHTML = `
-    <div class="kcard-title-row">
-      <div class="kcard-title-text" style="flex:1;">
-        <div style="font-weight:700;font-size:15px;color:var(--accent-1);">${s.tema || "Historia sin título"}</div>
-        <div style="font-size:11px;color:var(--ink-soft);margin-top:4px;display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
-          <span class="tag grey">${s.pillar || "Sin categoría"}</span>
-          <span>${s.date ? fmtDateNice(s.date) : "Sin fecha"}</span>
-        </div>
-      </div>
-      <span class="tag ${STORY_ESTADO_COLOR[s.estado]}">${STORY_ESTADO_LABEL[s.estado]}</span>
-      <span class="kcard-chevron">▾</span>
-    </div>`;
+
+  const titleRow = document.createElement("div"); titleRow.style.cssText="display:flex;align-items:flex-start;gap:8px;";
+  const titleText = document.createElement("div"); titleText.className="kcard-title-green"; titleText.style.flex="1";
+  titleText.textContent = s.tema || "Historia sin título";
+  titleRow.appendChild(titleText);
+  const chev = document.createElement("span"); chev.className="kcard-chevron"; chev.textContent="▾";
+  titleRow.appendChild(chev);
+  headEl.appendChild(titleRow);
+
+  const estadoBtns = document.createElement("div"); estadoBtns.className="estado-btns"; estadoBtns.style.marginTop="9px";
+  STORY_ESTADOS.forEach(e=>{
+    const b = document.createElement("button");
+    const c = STORY_ESTADO_COLOR[e];
+    b.className = "estado-btn tint-"+c + (s.estado===e ? " on-"+c : "");
+    b.textContent = STORY_ESTADO_LABEL[e];
+    b.onclick = (ev)=>{ ev.stopPropagation(); setStoryEstado(s, e); };
+    estadoBtns.appendChild(b);
+  });
+  headEl.appendChild(estadoBtns);
+
+  const metaRow = document.createElement("div"); metaRow.className="kcard-meta-row-v2";
+  const pillarTag = document.createElement("span"); pillarTag.className="tag grey"; pillarTag.textContent = s.pillar || "Sin categoría";
+  metaRow.appendChild(pillarTag);
+  const dateSpan = document.createElement("span"); dateSpan.textContent = s.date ? fmtDateNice(s.date) : "Sin fecha";
+  metaRow.appendChild(dateSpan);
+  headEl.appendChild(metaRow);
+
   headEl.onclick = (e)=>{
     if(e.target.closest("select") || e.target.closest("input") || e.target.closest("button") || e.target.closest("textarea")) return;
     if(expanded) expandedStoryIds.delete(s.id); else expandedStoryIds.add(s.id);
@@ -3622,25 +3661,26 @@ function renderStoryCard(s, parent){
   row1.appendChild(temaInp);
   const pillarSel = makeSelect(s.pillar || "Otro", CONTENT_CATEGORIES, v=>{s.pillar=v; save();}); pillarSel.style.maxWidth="160px";
   row1.appendChild(pillarSel);
-  const dateInp = makeTextInput(s.date, v=>{s.date=v; save();}, "date"); dateInp.style.maxWidth="150px";
-  row1.appendChild(dateInp);
   const viewsInp = makeTextInput(s.views, v=>{s.views=v; save();}, "text", "Views");
   viewsInp.setAttribute("inputmode","decimal"); viewsInp.style.maxWidth="100px";
   row1.appendChild(viewsInp);
+  const dateInp = makeTextInput(s.date, v=>{s.date=v; save();}, "date"); dateInp.style.maxWidth="150px"; dateInp.style.opacity="0.75";
+  row1.appendChild(dateInp);
   body.appendChild(row1);
 
   const slidesGrid = document.createElement("div");
-  slidesGrid.style.cssText="display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:8px;";
+  slidesGrid.style.cssText="display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:10px;";
   s.slides.forEach((txt,i)=>{
     const wrap = document.createElement("div");
-    const lab = document.createElement("div"); lab.style.cssText="font-size:11px;color:var(--ink-soft);margin-bottom:3px;"; lab.textContent="Historia "+(i+1);
+    const lab = document.createElement("div"); lab.style.cssText="font-size:11px;color:var(--ink-soft);margin-bottom:4px;"; lab.textContent="Historia "+(i+1);
     wrap.appendChild(lab);
     const ta = document.createElement("textarea");
-    ta.style.minHeight="60px"; ta.placeholder="Texto / idea de esta historia...";
+    ta.style.minHeight="90px"; ta.style.overflow="hidden"; ta.placeholder="Texto / idea de esta historia...";
     ta.value = txt||"";
-    ta.oninput = ()=>{ s.slides[i]=ta.value; save(); };
+    ta.oninput = ()=>{ s.slides[i]=ta.value; save(); autoGrow(ta); };
     wrap.appendChild(ta);
     slidesGrid.appendChild(wrap);
+    if(expanded) requestAnimationFrame(()=>autoGrow(ta));
   });
   body.appendChild(slidesGrid);
 
@@ -3652,21 +3692,7 @@ function renderStoryCard(s, parent){
   notes.oninput = ()=>{ s.notes=notes.value; save(); };
   body.appendChild(notes);
 
-  const estadoWrap = document.createElement("div"); estadoWrap.className="script-block";
-  const estadoLab = document.createElement("div"); estadoLab.className="script-block-label"; estadoLab.textContent="Estado";
-  estadoWrap.appendChild(estadoLab);
-  const estadoBtns = document.createElement("div"); estadoBtns.className="estado-btns";
-  STORY_ESTADOS.forEach(e=>{
-    const b = document.createElement("button");
-    b.className = "estado-btn" + (s.estado===e ? " on-"+STORY_ESTADO_COLOR[e] : "");
-    b.textContent = STORY_ESTADO_LABEL[e];
-    b.onclick = ()=> setStoryEstado(s, e);
-    estadoBtns.appendChild(b);
-  });
-  estadoWrap.appendChild(estadoBtns);
-  body.appendChild(estadoWrap);
-
-  const actionsRow = document.createElement("div"); actionsRow.style.cssText="display:flex;gap:8px;";
+  const actionsRow = document.createElement("div"); actionsRow.style.cssText="display:flex;gap:8px;margin-top:2px;";
   const dupBtn = document.createElement("button"); dupBtn.className="btn ghost small"; dupBtn.textContent="Duplicar";
   dupBtn.onclick = ()=>{
     const copy = JSON.parse(JSON.stringify(s));
@@ -4451,26 +4477,41 @@ function renderScriptCard(s, parent){
   migrateScriptItem(s);
   const expanded = expandedScriptIds.has(s.id);
   const card = document.createElement("div");
-  card.className = "kcard" + (expanded ? " expanded" : "");
-  card.style.marginBottom = "8px";
+  card.className = "kcard kcard-v2" + (expanded ? " expanded" : "");
+  card.style.marginBottom = "10px";
   const pColor = GUION_PILLAR_COLOR[s.pilar] || "var(--line)";
   card.style.borderLeft = "3px solid " + pColor;
   card.style.borderTopLeftRadius = "0";
   card.style.borderBottomLeftRadius = "0";
 
   const headEl = document.createElement("div"); headEl.className="kcard-head"; headEl.style.cursor="pointer";
-  headEl.innerHTML = `
-    <div class="kcard-title-row">
-      <div class="kcard-title-text" style="flex:1;">
-        <div style="font-weight:600;font-size:15px;">${s.titulo || "(sin título)"}</div>
-        <div style="font-size:11px;color:var(--ink-soft);margin-top:4px;display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
-          <span style="display:inline-flex;align-items:center;gap:5px;"><span style="width:7px;height:7px;border-radius:50%;background:${pColor};display:inline-block;"></span>${s.pilar}</span>
-          ${s.duracion ? `<span>· ${s.duracion}</span>` : ""}
-        </div>
-      </div>
-      <span class="tag ${GUION_ESTADO_COLOR[s.estado]}">${GUION_ESTADO_LABEL[s.estado]}</span>
-      <span class="kcard-chevron">▾</span>
-    </div>`;
+
+  const titleRow = document.createElement("div"); titleRow.style.cssText="display:flex;align-items:flex-start;gap:8px;";
+  const titleText = document.createElement("div"); titleText.className="kcard-title-green"; titleText.style.flex="1";
+  titleText.textContent = s.titulo || "(sin título)";
+  titleRow.appendChild(titleText);
+  const chev = document.createElement("span"); chev.className="kcard-chevron"; chev.textContent="▾";
+  titleRow.appendChild(chev);
+  headEl.appendChild(titleRow);
+
+  const estadoBtnsHead = document.createElement("div"); estadoBtnsHead.className="estado-btns"; estadoBtnsHead.style.marginTop="9px";
+  GUION_ESTADOS.forEach(e=>{
+    const b = document.createElement("button");
+    const c = GUION_ESTADO_COLOR[e];
+    b.className = "estado-btn tint-"+c + (s.estado===e ? " on-"+c : "");
+    b.textContent = GUION_ESTADO_LABEL[e];
+    b.onclick = (ev)=>{ ev.stopPropagation(); setScriptEstado(s, e); };
+    estadoBtnsHead.appendChild(b);
+  });
+  headEl.appendChild(estadoBtnsHead);
+
+  const metaRow = document.createElement("div"); metaRow.className="kcard-meta-row-v2";
+  const pilarSpan = document.createElement("span"); pilarSpan.style.cssText="display:inline-flex;align-items:center;gap:5px;";
+  pilarSpan.innerHTML = `<span style="width:7px;height:7px;border-radius:50%;background:${pColor};display:inline-block;"></span>${s.pilar}`;
+  metaRow.appendChild(pilarSpan);
+  if(s.duracion){ const durSpan = document.createElement("span"); durSpan.textContent = "· "+s.duracion; metaRow.appendChild(durSpan); }
+  headEl.appendChild(metaRow);
+
   headEl.onclick = (e)=>{
     if(e.target.closest("select") || e.target.closest("input") || e.target.closest("button") || e.target.closest("textarea")) return;
     if(expanded) expandedScriptIds.delete(s.id); else expandedScriptIds.add(s.id);
@@ -4517,20 +4558,6 @@ function renderScriptCard(s, parent){
   corridoTa.oninput = ()=>{ s.guionCorrido=corridoTa.value; s.updatedAt=new Date().toISOString(); save(); };
   corridoWrap.appendChild(corridoTa);
   body.appendChild(corridoWrap);
-
-  const estadoWrap = document.createElement("div"); estadoWrap.className="script-block";
-  const estadoLab = document.createElement("div"); estadoLab.className="script-block-label"; estadoLab.textContent="Estado";
-  estadoWrap.appendChild(estadoLab);
-  const estadoBtns = document.createElement("div"); estadoBtns.className="estado-btns";
-  GUION_ESTADOS.forEach(e=>{
-    const b = document.createElement("button");
-    b.className = "estado-btn" + (s.estado===e ? " on-"+GUION_ESTADO_COLOR[e] : "");
-    b.textContent = GUION_ESTADO_LABEL[e];
-    b.onclick = ()=> setScriptEstado(s, e);
-    estadoBtns.appendChild(b);
-  });
-  estadoWrap.appendChild(estadoBtns);
-  body.appendChild(estadoWrap);
 
   const delBtn = document.createElement("button"); delBtn.className="btn ghost small"; delBtn.textContent="Eliminar guion";
   delBtn.style.alignSelf="flex-start";
